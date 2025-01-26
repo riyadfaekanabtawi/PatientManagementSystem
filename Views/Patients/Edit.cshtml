@@ -4,13 +4,13 @@
     ViewData["Title"] = "Edit";
 }
 
-<h1>Edit</h1>
+<h1>Editar</h1>
 
-<h4>Patient</h4>
+<h4>Paciente</h4>
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Edit">
+        <form asp-action="Edit" method="POST" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
             <div class="form-group">
@@ -33,31 +33,56 @@
                 <input asp-for="Contact" class="form-control" />
                 <span asp-validation-for="Contact" class="text-danger"></span>
             </div>
+            
+            <!-- Front Image -->
             <div class="form-group">
                 <label for="FrontImage">Front Image</label>
+                @if (!string.IsNullOrEmpty(Model.FrontImageUrl))
+                {
+                    <img src="@Model.FrontImageUrl" alt="Front Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
+                }
                 <input type="file" name="FrontImage" class="form-control" />
             </div>
+            
+            <!-- Left Image -->
             <div class="form-group">
                 <label for="LeftImage">Left Image</label>
+                @if (!string.IsNullOrEmpty(Model.LeftImageUrl))
+                {
+                    <img src="@Model.LeftImageUrl" alt="Left Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
+                }
                 <input type="file" name="LeftImage" class="form-control" />
             </div>
+            
+            <!-- Right Image -->
             <div class="form-group">
                 <label for="RightImage">Right Image</label>
+                @if (!string.IsNullOrEmpty(Model.RightImageUrl))
+                {
+                    <img src="@Model.RightImageUrl" alt="Right Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
+                }
                 <input type="file" name="RightImage" class="form-control" />
             </div>
+            
+            <!-- Back Image -->
             <div class="form-group">
                 <label for="BackImage">Back Image</label>
+                @if (!string.IsNullOrEmpty(Model.BackImageUrl))
+                {
+                    <img src="@Model.BackImageUrl" alt="Back Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
+                }
                 <input type="file" name="BackImage" class="form-control" />
             </div>
+            
             <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+                <input type="submit" value="Guardar" class="btn btn-primary" />
             </div>
         </form>
     </div>
 </div>
 
 <div>
-    <a asp-action="Index">Back to List</a>
+    <a asp-action="Index">Volver al Listado</a>
 </div>
 
 @section Scripts {

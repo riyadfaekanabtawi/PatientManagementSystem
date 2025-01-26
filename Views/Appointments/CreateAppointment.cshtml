@@ -1,0 +1,88 @@
+@model IEnumerable<PatientManagementSystem.Models.Patient>
+
+<h2>Create Appointment</h2>
+
+<div class="row">
+    <!-- Form Section -->
+    <div class="col-md-4">
+        <form id="appointmentForm" asp-action="CreateAppointment" method="post">
+            <input type="hidden" id="appointmentDateTime" name="AppointmentDateTime" />
+            <div class="form-group">
+                <label for="patientIdDropdown">Select Patient</label>
+                <select id="patientIdDropdown" name="PatientId" class="form-control">
+                    @foreach (var patient in Model)
+                    {
+                        <option value="@patient.Id">@patient.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="Notes" class="form-control"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Book Appointment</button>
+        </form>
+    </div>
+
+    <!-- Calendar Section -->
+    <div class="col-md-8">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var calendarEl = document.getElementById('calendar');
+
+            // Parse existing appointments from ViewData
+            var existingAppointments = @Html.Raw(ViewData["Appointments"]);
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'timeGridWeek,timeGridDay'
+                },
+                selectable: true,
+                events: existingAppointments.map(function (appointment) {
+                    return {
+                        title: appointment.PatientName,
+                        start: appointment.AppointmentDateTime,
+                        allDay: false
+                    };
+                }),
+                select: function (info) {
+                    var selectedDate = new Date(info.start);
+
+                    // Prevent booking in the past
+                    if (selectedDate < new Date()) {
+                        alert("You cannot book an appointment in the past.");
+                        calendar.unselect();
+                        return;
+                    }
+
+                    // Check for conflicting appointments
+                    var conflict = existingAppointments.some(function (appointment) {
+                        return new Date(appointment.AppointmentDateTime).getTime() === selectedDate.getTime();
+                    });
+
+                    if (conflict) {
+                        alert("This time slot is already booked.");
+                        calendar.unselect();
+                        return;
+                    }
+
+                    // Populate the form with the selected date and time
+                    document.getElementById('appointmentDateTime').value = info.startStr;
+                    alert(`Selected slot: ${info.startStr}`);
+                }
+            });
+
+            calendar.render();
+        });
+    </script>
+}

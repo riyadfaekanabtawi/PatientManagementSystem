@@ -107,13 +107,14 @@ namespace PatientManagementSystem.Controllers
                 try
                 {
                     if (FrontImage != null)
-                        patient.FrontImageUrl = await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}");
+                    patient.FrontImageUrl = await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}");
                     if (LeftImage != null)
                         patient.LeftImageUrl = await UploadToS3Async(LeftImage, $"patients/{Guid.NewGuid()}_left.{LeftImage.ContentType.Split('/')[1]}");
                     if (RightImage != null)
                         patient.RightImageUrl = await UploadToS3Async(RightImage, $"patients/{Guid.NewGuid()}_right.{RightImage.ContentType.Split('/')[1]}");
                     if (BackImage != null)
                         patient.BackImageUrl = await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}");
+
 
                     _context.Update(patient);
                     await _context.SaveChangesAsync();
@@ -187,12 +188,14 @@ namespace PatientManagementSystem.Controllers
                 InputStream = stream,
                 BucketName = _configuration["AWS:BucketName"],
                 Key = fileName,
-                ContentType = file.ContentType
+                ContentType = file.ContentType,
+                CannedACL = S3CannedACL.PublicRead // Make the file publicly accessible
             };
 
             await transferUtility.UploadAsync(uploadRequest);
 
             return $"https://{_configuration["AWS:BucketName"]}.s3.{_configuration["AWS:Region"]}.amazonaws.com/{fileName}";
         }
+
     }
 }

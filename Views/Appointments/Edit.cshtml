@@ -1,0 +1,64 @@
+@model PatientManagementSystem.Models.Appointment
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit</h1>
+
+<h4>Appointment</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <div class="form-group">
+                <label asp-for="PatientId" class="control-label"></label>
+                <select asp-for="PatientId" class="form-control" asp-items="ViewBag.PatientId"></select>
+                <span asp-validation-for="PatientId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="AppointmentDateTime" class="control-label"></label>
+                <input asp-for="AppointmentDateTime" class="form-control" />
+                <span asp-validation-for="AppointmentDateTime" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Notes" class="control-label"></label>
+                <input asp-for="Notes" class="form-control" />
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="FrontImageUrl" class="control-label"></label>
+                <input asp-for="FrontImageUrl" class="form-control" />
+                <span asp-validation-for="FrontImageUrl" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="LeftImageUrl" class="control-label"></label>
+                <input asp-for="LeftImageUrl" class="form-control" />
+                <span asp-validation-for="LeftImageUrl" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="RightImageUrl" class="control-label"></label>
+                <input asp-for="RightImageUrl" class="form-control" />
+                <span asp-validation-for="RightImageUrl" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="BackImageUrl" class="control-label"></label>
+                <input asp-for="BackImageUrl" class="form-control" />
+                <span asp-validation-for="BackImageUrl" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

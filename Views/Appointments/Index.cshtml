@@ -1,0 +1,56 @@
+@model IEnumerable<PatientManagementSystem.Models.Appointment>
+
+<h2>Appointments</h2>
+
+<!-- Add Create Appointment Button -->
+<div class="d-flex justify-content-between mb-3">
+    <form method="get" asp-action="Index" class="d-flex gap-3">
+        <div class="form-group">
+            <label for="date">Filter by Date</label>
+            <input type="date" name="date" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="patientId">Filter by Patient</label>
+            <select name="patientId" class="form-control">
+                <option value="">All Patients</option>
+                @foreach (var patient in ViewData["Patients"] as IEnumerable<dynamic>)
+                {
+                    <option value="@patient.Id">@patient.Name</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary align-self-end">Filter</button>
+    </form>
+
+    <!-- Create Appointment Button -->
+    <a asp-action="CreateAppointment" class="btn btn-success align-self-end">Create Appointment</a>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Patient Name</th>
+            <th>Email</th>
+            <th>Appointment Date & Time</th>
+            <th>Notes</th>
+            <th>Images</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var appointment in Model)
+        {
+            <tr>
+                <td>@appointment.Patient?.Name</td>
+                <td>@appointment.Patient?.Email</td>
+                <td>@appointment.AppointmentDateTime.ToString("g")</td>
+                <td>@appointment.Notes</td>
+                <td>
+                    <img src="@appointment.FrontImageUrl" alt="Front" style="width: 50px; height: 50px;" />
+                    <img src="@appointment.LeftImageUrl" alt="Left" style="width: 50px; height: 50px;" />
+                    <img src="@appointment.RightImageUrl" alt="Right" style="width: 50px; height: 50px;" />
+                    <img src="@appointment.BackImageUrl" alt="Back" style="width: 50px; height: 50px;" />
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
