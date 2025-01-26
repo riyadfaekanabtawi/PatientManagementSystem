@@ -1,0 +1,8 @@
+/Users/riyadfaek/Desktop/webapps/PatientManagementSystem/obj/Debug/net8.0/PatientManagementSystem.csproj.AssemblyReference.cache
+/Users/riyadfaek/Desktop/webapps/PatientManagementSystem/obj/Debug/net8.0/PatientManagementSystem.GeneratedMSBuildEditorConfig.editorconfig
+/Users/riyadfaek/Desktop/webapps/PatientManagementSystem/obj/Debug/net8.0/PatientManagementSystem.AssemblyInfoInputs.cache
+/Users/riyadfaek/Desktop/webapps/PatientManagementSystem/obj/Debug/net8.0/PatientManagementSystem.AssemblyInfo.cs
+/Users/riyadfaek/Desktop/webapps/PatientManagementSystem/obj/Debug/net8.0/PatientManagementSystem.csproj.CoreCompileInputs.cache
+/Users/riyadfaek/Desktop/webapps/PatientManagementSystem/obj/Debug/net8.0/PatientManagementSystem.MvcApplicationPartsAssemblyInfo.cache
+/Users/riyadfaek/Desktop/webapps/PatientManagementSystem/obj/Debug/net8.0/PatientManagementSystem.RazorAssemblyInfo.cache
+/Users/riyadfaek/Desktop/webapps/PatientManagementSystem/obj/Debug/net8.0/PatientManagementSystem.RazorAssemblyInfo.cs
