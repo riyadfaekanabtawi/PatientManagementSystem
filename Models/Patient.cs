@@ -9,7 +9,7 @@ namespace PatientManagementSystem.Models
 
         [Required]
         [StringLength(100)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         [DataType(DataType.Date)]
@@ -17,10 +17,16 @@ namespace PatientManagementSystem.Models
 
         [Required]
         [EmailAddress]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [Required]
         [Phone]
-        public string Contact { get; set; }
+        public string Contact { get; set; } = string.Empty;
+
+        // Image URLs
+        public string? FrontImageUrl { get; set; }
+        public string? LeftImageUrl { get; set; }
+        public string? RightImageUrl { get; set; }
+        public string? BackImageUrl { get; set; }
     }
 }
