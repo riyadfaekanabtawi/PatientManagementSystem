@@ -37,7 +37,7 @@
             <!-- Front Image -->
             <div class="form-group">
                 <label for="FrontImage">Front Image</label>
-                @if (!string.IsNullOrEmpty(Model.FrontImageUrl))
+                @if (Model != null && !string.IsNullOrEmpty(Model.FrontImageUrl))
                 {
                     <img src="@Model.FrontImageUrl" alt="Front Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
                 }
@@ -47,7 +47,7 @@
             <!-- Left Image -->
             <div class="form-group">
                 <label for="LeftImage">Left Image</label>
-                @if (!string.IsNullOrEmpty(Model.LeftImageUrl))
+                @if (Model != null && !string.IsNullOrEmpty(Model.LeftImageUrl))
                 {
                     <img src="@Model.LeftImageUrl" alt="Left Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
                 }
@@ -57,7 +57,7 @@
             <!-- Right Image -->
             <div class="form-group">
                 <label for="RightImage">Right Image</label>
-                @if (!string.IsNullOrEmpty(Model.RightImageUrl))
+                @if (Model != null && !string.IsNullOrEmpty(Model.RightImageUrl))
                 {
                     <img src="@Model.RightImageUrl" alt="Right Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
                 }
@@ -67,7 +67,7 @@
             <!-- Back Image -->
             <div class="form-group">
                 <label for="BackImage">Back Image</label>
-                @if (!string.IsNullOrEmpty(Model.BackImageUrl))
+                @if (Model != null && !string.IsNullOrEmpty(Model.BackImageUrl))
                 {
                     <img src="@Model.BackImageUrl" alt="Back Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
                 }

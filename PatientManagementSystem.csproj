@@ -3,9 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>a65418a3-9a06-49af-a869-28dbb1cc6fdc</UserSecretsId>
-  </PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsi    <  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="3.7.412.4" />
