@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -33,41 +32,47 @@ namespace PatientManagementSystem.Controllers
         // GET: Patients/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
+            if (!id.HasValue)
                 return NotFound();
-            }
 
             var patient = await _context.Patients.FirstOrDefaultAsync(m => m.Id == id);
             if (patient == null)
-            {
                 return NotFound();
-            }
 
             return View(patient);
         }
 
         // GET: Patients/Create
-       public IActionResult Create()
+        public IActionResult Create()
         {
-            // Ensure the model is initialized before passing it to the view
             var model = new Patient
             {
+                Name = string.Empty,
                 FrontImageUrl = string.Empty,
                 LeftImageUrl = string.Empty,
                 RightImageUrl = string.Empty,
-                BackImageUrl = string.Empty, // Initialize any required properties
-            }; 
+                BackImageUrl = string.Empty
+            };
+
             return View(model);
         }
 
         // POST: Patients/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient, IFormFile? FrontImage, IFormFile? LeftImage, IFormFile? RightImage, IFormFile? BackImage)
+        public async Task<IActionResult> Create(
+            [Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient, 
+            IFormFile? FrontImage, 
+            IFormFile? LeftImage, 
+            IFormFile? RightImage, 
+            IFormFile? BackImage)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(patient);
+
+            try
             {
+                // Upload images to S3 if provided
                 if (FrontImage != null)
                     patient.FrontImageUrl = await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}");
                 if (LeftImage != null)
@@ -79,83 +84,81 @@ namespace PatientManagementSystem.Controllers
 
                 _context.Add(patient);
                 await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
-            return View(patient);
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, $"An error occurred: {ex.Message}");
+                return View(patient);
+            }
         }
 
         // GET: Patients/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
+            if (!id.HasValue)
                 return NotFound();
-            }
 
             var patient = await _context.Patients.FindAsync(id);
             if (patient == null)
-            {
                 return NotFound();
-            }
+
             return View(patient);
         }
 
         // POST: Patients/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient, IFormFile? FrontImage, IFormFile? LeftImage, IFormFile? RightImage, IFormFile? BackImage)
+        public async Task<IActionResult> Edit(
+            int id, 
+            [Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient, 
+            IFormFile? FrontImage, 
+            IFormFile? LeftImage, 
+            IFormFile? RightImage, 
+            IFormFile? BackImage)
         {
             if (id != patient.Id)
-            {
                 return NotFound();
-            }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(patient);
+
+            try
             {
-                try
-                {
-                    if (FrontImage != null)
+                // Upload images to S3 if provided
+                if (FrontImage != null)
                     patient.FrontImageUrl = await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}");
-                    if (LeftImage != null)
-                        patient.LeftImageUrl = await UploadToS3Async(LeftImage, $"patients/{Guid.NewGuid()}_left.{LeftImage.ContentType.Split('/')[1]}");
-                    if (RightImage != null)
-                        patient.RightImageUrl = await UploadToS3Async(RightImage, $"patients/{Guid.NewGuid()}_right.{RightImage.ContentType.Split('/')[1]}");
-                    if (BackImage != null)
-                        patient.BackImageUrl = await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}");
+                if (LeftImage != null)
+                    patient.LeftImageUrl = await UploadToS3Async(LeftImage, $"patients/{Guid.NewGuid()}_left.{LeftImage.ContentType.Split('/')[1]}");
+                if (RightImage != null)
+                    patient.RightImageUrl = await UploadToS3Async(RightImage, $"patients/{Guid.NewGuid()}_right.{RightImage.ContentType.Split('/')[1]}");
+                if (BackImage != null)
+                    patient.BackImageUrl = await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}");
 
+                _context.Update(patient);
+                await _context.SaveChangesAsync();
 
-                    _context.Update(patient);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!PatientExists(patient.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
                 return RedirectToAction(nameof(Index));
             }
-            return View(patient);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!PatientExists(patient.Id))
+                    return NotFound();
+
+                throw;
+            }
         }
 
         // GET: Patients/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
+            if (!id.HasValue)
                 return NotFound();
-            }
 
             var patient = await _context.Patients.FirstOrDefaultAsync(m => m.Id == id);
             if (patient == null)
-            {
                 return NotFound();
-            }
 
             return View(patient);
         }
@@ -167,9 +170,7 @@ namespace PatientManagementSystem.Controllers
         {
             var patient = await _context.Patients.FindAsync(id);
             if (patient != null)
-            {
                 _context.Patients.Remove(patient);
-            }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
@@ -204,6 +205,5 @@ namespace PatientManagementSystem.Controllers
 
             return $"https://{_configuration["AWS:BucketName"]}.s3.{_configuration["AWS:Region"]}.amazonaws.com/{fileName}";
         }
-
     }
 }
