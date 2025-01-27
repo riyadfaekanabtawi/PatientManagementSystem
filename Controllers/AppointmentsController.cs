@@ -21,19 +21,23 @@ namespace PatientManagementSystem.Controllers
         // GET: Appointments
         public async Task<IActionResult> Index(DateTime? date, int? patientId)
         {
-            var appointments = _context.Appointments
-                .Include(a => a.Patient)
-                .AsQueryable();
+            var appointments = _context.Appointments.Include(a => a.Patient).AsQueryable();
 
             if (date.HasValue)
-            {
                 appointments = appointments.Where(a => a.AppointmentDateTime.Date == date.Value.Date);
-            }
 
             if (patientId.HasValue)
-            {
                 appointments = appointments.Where(a => a.PatientId == patientId);
-            }
+
+            var appointmentData = await appointments.Select(a => new
+            {
+                a.AppointmentDateTime,
+                PatientName = a.Patient.Name,
+                PatientEmail = a.Patient.Email,
+                a.Notes
+            }).ToListAsync();
+
+            ViewData["Appointments"] = System.Text.Json.JsonSerializer.Serialize(appointmentData);
 
             ViewData["Patients"] = await _context.Patients
                 .Select(p => new { p.Id, p.Name })

@@ -2,16 +2,16 @@
 
 <h2>Citas</h2>
 
-<!-- Add Create Appointment Button -->
+<!-- Filter Form -->
 <div class="d-flex justify-content-between mb-3">
-    <form method="get" asp-action="Index" class="d-flex gap-3">
+    <form id="filterForm" method="get" asp-action="Index" class="d-flex gap-3">
         <div class="form-group">
             <label for="date">Filtrar por Fecha</label>
-            <input type="date" name="date" class="form-control" />
+            <input type="date" name="date" id="filterDate" class="form-control" />
         </div>
         <div class="form-group">
             <label for="patientId">Filtrar por Paciente</label>
-            <select name="patientId" class="form-control">
+            <select name="patientId" id="filterPatient" class="form-control">
                 <option value="">Todos Los Pacientes</option>
                 @if (ViewData["Patients"] != null && ViewData["Patients"] is IEnumerable<dynamic> patients)
                 {
@@ -22,67 +22,82 @@
                 }
             </select>
         </div>
-        <button type="submit" class="btn btn-primary align-self-end">Filtrar</button>
+        <button type="button" id="filterButton" class="btn btn-primary align-self-end">Filtrar</button>
     </form>
-
-    <!-- Create Appointment Button -->
     <a asp-action="CreateAppointment" class="btn btn-success align-self-end">Crear Cita</a>
 </div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Email</th>
-            <th>Fecha y Hora</th>
-            <th>Notas</th>
-            <th>Imagenes</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (Model != null)
-        {
-            foreach (var appointment in Model)
-            {
-                <tr>
-                    <td>@appointment.Patient?.Name ?? "Unknown"</td>
-                    <td>@appointment.Patient?.Email ?? "N/A"</td>
-                    <td>@appointment.AppointmentDateTime.ToString("g")</td>
-                    <td>@appointment.Notes ?? "No notes"</td>
-                    <td>
-                        @if (!string.IsNullOrEmpty(appointment.FrontImageUrl))
-                        {
-                            <img src="@appointment.FrontImageUrl" alt="Front" style="width: 50px; height: 50px;" />
-                        }
-                        @if (!string.IsNullOrEmpty(appointment.LeftImageUrl))
-                        {
-                            <img src="@appointment.LeftImageUrl" alt="Left" style="width: 50px; height: 50px;" />
-                        }
-                        @if (!string.IsNullOrEmpty(appointment.RightImageUrl))
-                        {
-                            <img src="@appointment.RightImageUrl" alt="Right" style="width: 50px; height: 50px;" />
-                        }
-                        @if (!string.IsNullOrEmpty(appointment.BackImageUrl))
-                        {
-                            <img src="@appointment.BackImageUrl" alt="Back" style="width: 50px; height: 50px;" />
-                        }
-                    </td>
-                    <td>
-                        <a asp-action="Details" asp-route-id="@appointment.Id" class="btn btn-info btn-sm">Detalles</a>
-                        <a asp-action="Edit" asp-route-id="@appointment.Id" class="btn btn-warning btn-sm">Editar</a>
-                        <form asp-action="Delete" asp-route-id="@appointment.Id" method="post" class="d-inline">
-                            <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
-                        </form>
-                    </td>
-                </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="6" class="text-center">No hay Citas Disponibles.</td>
-            </tr>
-        }
-    </tbody>
-</table>
+<!-- Calendar -->
+<div id="calendar"></div>
+
+<!-- Appointment Details Modal -->
+<div class="modal fade" id="appointmentDetailsModal" tabindex="-1" aria-labelledby="appointmentDetailsLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="appointmentDetailsLabel">Detalles de la Cita</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Nombre:</strong> <span id="modalPatientName"></span></p>
+                <p><strong>Email:</strong> <span id="modalPatientEmail"></span></p>
+                <p><strong>Notas:</strong> <span id="modalNotes"></span></p>
+                <p><strong>Fecha y Hora:</strong> <span id="modalAppointmentDate"></span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+            const appointments = @Html.Raw(ViewData["Appointments"]);
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'timeGridWeek,timeGridDay'
+                },
+                events: appointments.map(a => ({
+                    title: a.PatientName,
+                    start: a.AppointmentDateTime,
+                    extendedProps: {
+                        email: a.PatientEmail,
+                        notes: a.Notes
+                    }
+                })),
+                eventClick: function (info) {
+                    // Display appointment details in modal
+                    const event = info.event.extendedProps;
+                    document.getElementById('modalPatientName').textContent = info.event.title;
+                    document.getElementById('modalPatientEmail').textContent = event.email || 'N/A';
+                    document.getElementById('modalNotes').textContent = event.notes || 'No notes';
+                    document.getElementById('modalAppointmentDate').textContent = info.event.start.toLocaleString();
+
+                    const modal = new bootstrap.Modal(document.getElementById('appointmentDetailsModal'));
+                    modal.show();
+                }
+            });
+
+            calendar.render();
+
+            // Filter appointments and reload the calendar
+            document.getElementById('filterButton').addEventListener('click', function () {
+                const date = document.getElementById('filterDate').value;
+                const patientId = document.getElementById('filterPatient').value;
+
+                const url = `/Appointments/Index?date=${date}&patientId=${patientId}`;
+                window.location.href = url;
+            });
+        });
+    </script>
+}
