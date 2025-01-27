@@ -1,43 +1,52 @@
 @model PatientManagementSystem.Models.Patient
-@model Patient
+
 @{
     ViewData["Title"] = "Create";
 }
 
-<h1>Crear</h1>
+<h1>Create</h1>
 
-<h4>Paciente</h4>
+<h4>Patient</h4>
 <hr />
 <div class="row">
     <div class="col-md-4">
         <form asp-action="Create" method="POST" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            
+            <!-- Name -->
             <div class="form-group">
                 <label asp-for="Name" class="control-label"></label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
+
+            <!-- Date of Birth -->
             <div class="form-group">
                 <label asp-for="DateOfBirth" class="control-label"></label>
                 <input asp-for="DateOfBirth" class="form-control" />
                 <span asp-validation-for="DateOfBirth" class="text-danger"></span>
             </div>
+
+            <!-- Email -->
             <div class="form-group">
                 <label asp-for="Email" class="control-label"></label>
                 <input asp-for="Email" class="form-control" />
                 <span asp-validation-for="Email" class="text-danger"></span>
             </div>
+
+            <!-- Contact -->
             <div class="form-group">
                 <label asp-for="Contact" class="control-label"></label>
                 <input asp-for="Contact" class="form-control" />
                 <span asp-validation-for="Contact" class="text-danger"></span>
             </div>
-             <!-- Front Image -->
+
+            <!-- Front Image -->
             <div class="form-group">
                 <label for="FrontImage">Front Image</label>
-                @if (Model?.FrontImageUrl != null && !string.IsNullOrEmpty(Model.FrontImageUrl))
+                @if (!string.IsNullOrEmpty(Model?.FrontImageUrl))
                 {
-                    <img src="@Model.FrontImageUrl" alt="Front Image" />
+                    <img src="@Model.FrontImageUrl" alt="Front Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
                 }
                 else
                 {
@@ -45,11 +54,11 @@
                 }
                 <input type="file" name="FrontImage" class="form-control" />
             </div>
-            
+
             <!-- Left Image -->
             <div class="form-group">
                 <label for="LeftImage">Left Image</label>
-                @if (Model?.LeftImageUrl  && !string.IsNullOrEmpty(Model.LeftImageUrl))
+                @if (!string.IsNullOrEmpty(Model?.LeftImageUrl))
                 {
                     <img src="@Model.LeftImageUrl" alt="Left Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
                 }
@@ -59,11 +68,11 @@
                 }
                 <input type="file" name="LeftImage" class="form-control" />
             </div>
-            
+
             <!-- Right Image -->
             <div class="form-group">
                 <label for="RightImage">Right Image</label>
-                @if (Model?.RightImageUrl != null && !string.IsNullOrEmpty(Model.RightImageUrl))
+                @if (!string.IsNullOrEmpty(Model?.RightImageUrl))
                 {
                     <img src="@Model.RightImageUrl" alt="Right Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
                 }
@@ -73,11 +82,11 @@
                 }
                 <input type="file" name="RightImage" class="form-control" />
             </div>
-            
+
             <!-- Back Image -->
             <div class="form-group">
                 <label for="BackImage">Back Image</label>
-                @if (Model?.BackImageUrl != null && !string.IsNullOrEmpty(Model.BackImageUrl))
+                @if (!string.IsNullOrEmpty(Model?.BackImageUrl))
                 {
                     <img src="@Model.BackImageUrl" alt="Back Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
                 }
@@ -88,6 +97,7 @@
                 <input type="file" name="BackImage" class="form-control" />
             </div>
 
+            <!-- Submit Button -->
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
@@ -100,5 +110,5 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
 }
