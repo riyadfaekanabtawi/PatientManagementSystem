@@ -1,5 +1,5 @@
 @model PatientManagementSystem.Models.Patient
-
+@model Patient
 @{
     ViewData["Title"] = "Create";
 }
@@ -35,9 +35,13 @@
              <!-- Front Image -->
             <div class="form-group">
                 <label for="FrontImage">Front Image</label>
-                @if (Model != null && !string.IsNullOrEmpty(Model.FrontImageUrl))
+                @if (Model?.FrontImageUrl != null && !string.IsNullOrEmpty(Model.FrontImageUrl))
                 {
                     <img src="@Model.FrontImageUrl" alt="Front Image" />
+                }
+                else
+                {
+                    <p>No image available.</p>
                 }
                 <input type="file" name="FrontImage" class="form-control" />
             </div>
@@ -45,9 +49,13 @@
             <!-- Left Image -->
             <div class="form-group">
                 <label for="LeftImage">Left Image</label>
-                @if (Model != null && !string.IsNullOrEmpty(Model.LeftImageUrl))
+                @if (Model?.LeftImageUrl  && !string.IsNullOrEmpty(Model.LeftImageUrl))
                 {
                     <img src="@Model.LeftImageUrl" alt="Left Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
+                }
+                else
+                {
+                    <p>No image available.</p>
                 }
                 <input type="file" name="LeftImage" class="form-control" />
             </div>
@@ -55,9 +63,13 @@
             <!-- Right Image -->
             <div class="form-group">
                 <label for="RightImage">Right Image</label>
-                @if (Model != null && !string.IsNullOrEmpty(Model.RightImageUrl))
+                @if (Model?.RightImageUrl != null && !string.IsNullOrEmpty(Model.RightImageUrl))
                 {
                     <img src="@Model.RightImageUrl" alt="Right Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
+                }
+                else
+                {
+                    <p>No image available.</p>
                 }
                 <input type="file" name="RightImage" class="form-control" />
             </div>
@@ -65,9 +77,13 @@
             <!-- Back Image -->
             <div class="form-group">
                 <label for="BackImage">Back Image</label>
-                @if (Model != null && !string.IsNullOrEmpty(Model.BackImageUrl))
+                @if (Model?.BackImageUrl != null && !string.IsNullOrEmpty(Model.BackImageUrl))
                 {
                     <img src="@Model.BackImageUrl" alt="Back Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
+                }
+                else
+                {
+                    <p>No image available.</p>
                 }
                 <input type="file" name="BackImage" class="form-control" />
             </div>
