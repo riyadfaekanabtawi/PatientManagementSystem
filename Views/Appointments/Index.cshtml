@@ -13,9 +13,12 @@
             <label for="patientId">Filter by Patient</label>
             <select name="patientId" class="form-control">
                 <option value="">All Patients</option>
-                @foreach (var patient in ViewData["Patients"] as IEnumerable<dynamic>)
+                @if (ViewData["Patients"] != null && ViewData["Patients"] is IEnumerable<dynamic> patients)
                 {
-                    <option value="@patient.Id">@patient.Name</option>
+                    foreach (var patient in patients)
+                    {
+                        <option value="@patient.Id">@patient.Name</option>
+                    }
                 }
             </select>
         </div>
@@ -34,22 +37,51 @@
             <th>Appointment Date & Time</th>
             <th>Notes</th>
             <th>Images</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var appointment in Model)
+        @if (Model != null)
+        {
+            foreach (var appointment in Model)
+            {
+                <tr>
+                    <td>@appointment.Patient?.Name ?? "Unknown"</td>
+                    <td>@appointment.Patient?.Email ?? "N/A"</td>
+                    <td>@appointment.AppointmentDateTime.ToString("g")</td>
+                    <td>@appointment.Notes ?? "No notes"</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(appointment.FrontImageUrl))
+                        {
+                            <img src="@appointment.FrontImageUrl" alt="Front" style="width: 50px; height: 50px;" />
+                        }
+                        @if (!string.IsNullOrEmpty(appointment.LeftImageUrl))
+                        {
+                            <img src="@appointment.LeftImageUrl" alt="Left" style="width: 50px; height: 50px;" />
+                        }
+                        @if (!string.IsNullOrEmpty(appointment.RightImageUrl))
+                        {
+                            <img src="@appointment.RightImageUrl" alt="Right" style="width: 50px; height: 50px;" />
+                        }
+                        @if (!string.IsNullOrEmpty(appointment.BackImageUrl))
+                        {
+                            <img src="@appointment.BackImageUrl" alt="Back" style="width: 50px; height: 50px;" />
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@appointment.Id" class="btn btn-info btn-sm">Details</a>
+                        <a asp-action="Edit" asp-route-id="@appointment.Id" class="btn btn-warning btn-sm">Edit</a>
+                        <form asp-action="Delete" asp-route-id="@appointment.Id" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+        else
         {
             <tr>
-                <td>@appointment.Patient?.Name</td>
-                <td>@appointment.Patient?.Email</td>
-                <td>@appointment.AppointmentDateTime.ToString("g")</td>
-                <td>@appointment.Notes</td>
-                <td>
-                    <img src="@appointment.FrontImageUrl" alt="Front" style="width: 50px; height: 50px;" />
-                    <img src="@appointment.LeftImageUrl" alt="Left" style="width: 50px; height: 50px;" />
-                    <img src="@appointment.RightImageUrl" alt="Right" style="width: 50px; height: 50px;" />
-                    <img src="@appointment.BackImageUrl" alt="Back" style="width: 50px; height: 50px;" />
-                </td>
+                <td colspan="6" class="text-center">No appointments available.</td>
             </tr>
         }
     </tbody>

@@ -1,111 +1,97 @@
 @model PatientManagementSystem.Models.Patient
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Crear Paciente";
 }
-<h1>Create</h1>
 
-<h4>Patient</h4>
-<hr />
+<h1 class="mb-4">Crear Paciente</h1>
+
 <div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create" method="POST" enctype="multipart/form-data">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            
-            <!-- Name -->
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
+    <div class="col-lg-8 col-md-10 col-sm-12 mx-auto">
+        <div class="card shadow-sm p-4">
+            <h4 class="card-title mb-3">Detalles del Paciente</h4>
+            <form asp-action="Create" method="POST" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-            <!-- Date of Birth -->
-            <div class="form-group">
-                <label asp-for="DateOfBirth" class="control-label"></label>
-                <input asp-for="DateOfBirth" class="form-control" />
-                <span asp-validation-for="DateOfBirth" class="text-danger"></span>
-            </div>
+                <div class="row">
+                    <!-- Column 1 -->
+                    <div class="col-md-6">
+                        <!-- Name -->
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Nombre</label>
+                            <input asp-for="Name" class="form-control" placeholder="Ingrese el nombre del paciente" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
 
-            <!-- Email -->
-            <div class="form-group">
-                <label asp-for="Email" class="control-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
-            </div>
+                        <!-- Date of Birth -->
+                        <div class="mb-3">
+                            <label asp-for="DateOfBirth" class="form-label">Fecha de Nacimiento</label>
+                            <input asp-for="DateOfBirth" class="form-control" type="date" />
+                            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                        </div>
+                    </div>
 
-            <!-- Contact -->
-            <div class="form-group">
-                <label asp-for="Contact" class="control-label"></label>
-                <input asp-for="Contact" class="form-control" />
-                <span asp-validation-for="Contact" class="text-danger"></span>
-            </div>
+                    <!-- Column 2 -->
+                    <div class="col-md-6">
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">Email</label>
+                            <input asp-for="Email" class="form-control" placeholder="Ingrese el email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
 
-            <!-- Front Image -->
-            <div class="form-group">
-                <label for="FrontImage">Front Image</label>
-                @if (!string.IsNullOrEmpty(Model?.FrontImageUrl))
-                {
-                    <img src="@Model.FrontImageUrl" alt="Front Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
-                }
-                else
-                {
-                    <p>No image available.</p>
-                }
-                <input type="file" name="FrontImage" class="form-control" />
-            </div>
+                        <!-- Contact -->
+                        <div class="mb-3">
+                            <label asp-for="Contact" class="form-label">Contacto</label>
+                            <input asp-for="Contact" class="form-control" placeholder="Ingrese el número de contacto" />
+                            <span asp-validation-for="Contact" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- Left Image -->
-            <div class="form-group">
-                <label for="LeftImage">Left Image</label>
-                @if (!string.IsNullOrEmpty(Model?.LeftImageUrl))
-                {
-                    <img src="@Model.LeftImageUrl" alt="Left Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
-                }
-                else
-                {
-                    <p>No image available.</p>
-                }
-                <input type="file" name="LeftImage" class="form-control" />
-            </div>
+                <!-- Images Section -->
+                <div class="row">
+                    <!-- Front Image -->
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="FrontImage" class="form-label">Imagen de Frente</label>
+                            <input type="file" name="FrontImage" class="form-control" />
+                        </div>
+                    </div>
 
-            <!-- Right Image -->
-            <div class="form-group">
-                <label for="RightImage">Right Image</label>
-                @if (!string.IsNullOrEmpty(Model?.RightImageUrl))
-                {
-                    <img src="@Model.RightImageUrl" alt="Right Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
-                }
-                else
-                {
-                    <p>No image available.</p>
-                }
-                <input type="file" name="RightImage" class="form-control" />
-            </div>
+                    <!-- Left Image -->
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="LeftImage" class="form-label">Imagen Izquierda</label>
+                            <input type="file" name="LeftImage" class="form-control" />
+                        </div>
+                    </div>
 
-            <!-- Back Image -->
-            <div class="form-group">
-                <label for="BackImage">Back Image</label>
-                @if (!string.IsNullOrEmpty(Model?.BackImageUrl))
-                {
-                    <img src="@Model.BackImageUrl" alt="Back Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
-                }
-                else
-                {
-                    <p>No image available.</p>
-                }
-                <input type="file" name="BackImage" class="form-control" />
-            </div>
+                    <!-- Right Image -->
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="RightImage" class="form-label">Imagen Derecha</label>
+                            <input type="file" name="RightImage" class="form-control" />
+                        </div>
+                    </div>
 
-            <!-- Submit Button -->
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+                    <!-- Back Image -->
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="BackImage" class="form-label">Imagen Trasera</label>
+                            <input type="file" name="BackImage" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit and Back Buttons -->
+                <div class="d-flex justify-content-between">
+                    <input type="submit" value="Crear" class="btn btn-primary" />
+                    <a asp-action="Index" class="btn btn-secondary">Volver al Listado</a>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {

@@ -10,9 +10,16 @@
             <div class="form-group">
                 <label for="patientIdDropdown">Select Patient</label>
                 <select id="patientIdDropdown" name="PatientId" class="form-control">
-                    @foreach (var patient in Model)
+                    @if (Model != null && Model.Any())
                     {
-                        <option value="@patient.Id">@patient.Name</option>
+                        @foreach (var patient in Model)
+                        {
+                            <option value="@patient.Id">@patient.Name</option>
+                        }
+                    }
+                    else
+                    {
+                        <option value="">No patients available</option>
                     }
                 </select>
             </div>
@@ -20,6 +27,7 @@
                 <label for="notes">Notes</label>
                 <textarea id="notes" name="Notes" class="form-control"></textarea>
             </div>
+            <br>
             <button type="submit" class="btn btn-primary">Book Appointment</button>
         </form>
     </div>

@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/PatientManagementSystem.styles.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tempusdominus-bootstrap-5/build/css/tempusdominus-bootstrap-5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-5/6.1.2/css/tempusdominus-bootstrap-5.min.css" />
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
 </head>
 <body>
@@ -37,6 +37,7 @@
             @RenderBody()
         </main>
     </div>
+    <br>
     <footer class="border-top footer text-muted">
         <div class="container text-center py-3">
             &copy; 2025 - PatientManagementSystem - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
@@ -45,9 +46,13 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tempusdominus-bootstrap-5/build/js/tempusdominus-bootstrap-5.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-5/6.1.2/js/tempusdominus-bootstrap-5.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script>
+  
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

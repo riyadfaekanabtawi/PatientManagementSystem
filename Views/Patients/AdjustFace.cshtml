@@ -1,0 +1,61 @@
+@model PatientManagementSystem.Models.Patient
+
+<h2>Ajustar Cara para @Model.Name</h2>
+
+<button id="generate-model" class="btn btn-primary">Generate 3D Model</button>
+<div id="threejs-container" style="width: 100%; height: 600px; border: 1px solid #ddd;"></div>
+
+<div id="adjustment-controls">
+    <div class="form-group">
+        <label for="cheeks-slider">Cachetes:</label>
+        <input type="range" id="cheeks-slider" min="-10" max="10" step="1" />
+    </div>
+    <div class="form-group">
+        <label for="chin-slider">Menton:</label>
+        <input type="range" id="chin-slider" min="-10" max="10" step="1" />
+    </div>
+    <div class="form-group">
+        <label for="nose-slider">Nariz:</label>
+        <input type="range" id="nose-slider" min="-10" max="10" step="1" />
+    </div>
+    <button id="save-adjustments" class="btn btn-primary">Guardar Ajustes</button>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/GLTFLoader.js"></script>
+
+    <script>
+       document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('threejs-container');
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+            container.appendChild(renderer.domElement);
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
+            camera.position.z = 5;
+
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(10, 10, 10);
+            scene.add(light);
+
+            const loader = new THREE.GLTFLoader();
+            const s3ModelUrl = '@Model.Model3DUrl'; // Replace with the S3 URL stored in the database
+
+            loader.load(s3ModelUrl, function (gltf) {
+                scene.add(gltf.scene);
+
+                const animate = function () {
+                    requestAnimationFrame(animate);
+                    renderer.render(scene, camera);
+                };
+                animate();
+            }, undefined, function (error) {
+                console.error('Error loading 3D model:', error);
+            });
+        });
+
+    </script>
+}

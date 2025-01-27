@@ -4,43 +4,57 @@
     ViewData["Title"] = "Details";
 }
 
-<h1>Details</h1>
+<h1>Patient Details</h1>
 
-<div>
-    <h4>Patient</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DateOfBirth)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DateOfBirth)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Contact)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Contact)
-        </dd>
-            <img src="@Model.FrontImageUrl" alt="Front" class="img-thumbnail" style="width: 200px;" />
-            <img src="@Model.LeftImageUrl" alt="Left" class="img-thumbnail" style="width: 200px;" />
-            <img src="@Model.RightImageUrl" alt="Right" class="img-thumbnail" style="width: 200px;" />
-            <img src="@Model.BackImageUrl" alt="Back" class="img-thumbnail" style="width: 200px;" />
+@if (Model == null)
+{
+    <div class="alert alert-danger">
+        <p>Patient details are not available. Please return to the list and try again.</p>
+        <a asp-action="Index" class="btn btn-primary">Back to List</a>
+    </div>
+}
+else
+{
+    <div>
+        <h4>Patient</h4>
+        <hr />
+        <dl class="row">
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.Name)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.Name ?? "N/A")
+            </dd>
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.DateOfBirth)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.DateOfBirth.ToString("d") ?? "N/A")
+            </dd>
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.Email)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.Email ?? "N/A")
+            </dd>
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.Contact)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.Contact ?? "N/A")
+            </dd>
         </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+        
+        <div>
+            <h5>Patient Images</h5>
+            <img src="@Model.FrontImageUrl ?? "/path/to/default-front.jpg"" alt="Front" class="img-thumbnail" style="width: 200px; margin-right: 10px;" />
+            <img src="@Model.LeftImageUrl ?? "/path/to/default-left.jpg"" alt="Left" class="img-thumbnail" style="width: 200px; margin-right: 10px;" />
+            <img src="@Model.RightImageUrl ?? "/path/to/default-right.jpg"" alt="Right" class="img-thumbnail" style="width: 200px; margin-right: 10px;" />
+            <img src="@Model.BackImageUrl ?? "/path/to/default-back.jpg"" alt="Back" class="img-thumbnail" style="width: 200px;" />
+        </div>
+    </div>
+    <div>
+        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning">Edit</a>
+        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    </div>
+}

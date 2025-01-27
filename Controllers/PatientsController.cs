@@ -9,6 +9,7 @@ using Amazon.S3;
 using Amazon.S3.Transfer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
 
 namespace PatientManagementSystem.Controllers
 {
@@ -26,7 +27,8 @@ namespace PatientManagementSystem.Controllers
         // GET: Patients
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Patients.ToListAsync());
+            var patients = await _context.Patients.ToListAsync();
+            return View(patients);
         }
 
         // GET: Patients/Details/5
@@ -35,7 +37,7 @@ namespace PatientManagementSystem.Controllers
             if (!id.HasValue)
                 return NotFound();
 
-            var patient = await _context.Patients.FirstOrDefaultAsync(m => m.Id == id);
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
             if (patient == null)
                 return NotFound();
 
@@ -45,81 +47,42 @@ namespace PatientManagementSystem.Controllers
         // GET: Patients/Create
         public IActionResult Create()
         {
-            var model = new Patient
+            return View(new Patient
             {
-                Name = string.Empty,
-                DateOfBirth = DateTime.Today, // Default date to avoid validation issues
-                Email = string.Empty,
-                Contact = string.Empty,
-                FrontImageUrl = string.Empty,
-                LeftImageUrl = string.Empty,
-                RightImageUrl = string.Empty,
-                BackImageUrl = string.Empty
-            };
-
-            return View(model);
+                DateOfBirth = DateTime.Today // Default date to avoid validation issues
+            });
         }
 
-
+        // POST: Patients/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
-            [Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient, 
-            IFormFile? FrontImage, 
-            IFormFile? LeftImage, 
-            IFormFile? RightImage, 
+            [Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient,
+            IFormFile? FrontImage,
+            IFormFile? LeftImage,
+            IFormFile? RightImage,
             IFormFile? BackImage)
         {
             if (!ModelState.IsValid)
-            {
-                Console.WriteLine("ModelState is invalid:");
-                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    Console.WriteLine($"- {error.ErrorMessage}");
-                }
-
-                // Re-initialize image URLs for display in the form
-                patient.FrontImageUrl ??= string.Empty;
-                patient.LeftImageUrl ??= string.Empty;
-                patient.RightImageUrl ??= string.Empty;
-                patient.BackImageUrl ??= string.Empty;
-
-                return View(patient); // Pass the model back to the view
-            }
+                return View(patient);
 
             try
             {
-                // Handle image uploads
-                if (FrontImage != null)
-                    patient.FrontImageUrl = await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}");
-                if (LeftImage != null)
-                    patient.LeftImageUrl = await UploadToS3Async(LeftImage, $"patients/{Guid.NewGuid()}_left.{LeftImage.ContentType.Split('/')[1]}");
-                if (RightImage != null)
-                    patient.RightImageUrl = await UploadToS3Async(RightImage, $"patients/{Guid.NewGuid()}_right.{RightImage.ContentType.Split('/')[1]}");
-                if (BackImage != null)
-                    patient.BackImageUrl = await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}");
+                patient.FrontImageUrl = FrontImage != null ? await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}") : null;
+                patient.LeftImageUrl = LeftImage != null ? await UploadToS3Async(LeftImage, $"patients/{Guid.NewGuid()}_left.{LeftImage.ContentType.Split('/')[1]}") : null;
+                patient.RightImageUrl = RightImage != null ? await UploadToS3Async(RightImage, $"patients/{Guid.NewGuid()}_right.{RightImage.ContentType.Split('/')[1]}") : null;
+                patient.BackImageUrl = BackImage != null ? await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}") : null;
 
-                // Save patient
                 _context.Add(patient);
                 await _context.SaveChangesAsync();
-
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception: {ex.Message}");
                 ModelState.AddModelError(string.Empty, $"An error occurred: {ex.Message}");
-
-                // Re-initialize image URLs for display in the form
-                patient.FrontImageUrl ??= string.Empty;
-                patient.LeftImageUrl ??= string.Empty;
-                patient.RightImageUrl ??= string.Empty;
-                patient.BackImageUrl ??= string.Empty;
-
                 return View(patient);
             }
         }
-
 
         // GET: Patients/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -138,11 +101,11 @@ namespace PatientManagementSystem.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(
-            int id, 
-            [Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient, 
-            IFormFile? FrontImage, 
-            IFormFile? LeftImage, 
-            IFormFile? RightImage, 
+            int id,
+            [Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient,
+            IFormFile? FrontImage,
+            IFormFile? LeftImage,
+            IFormFile? RightImage,
             IFormFile? BackImage)
         {
             if (id != patient.Id)
@@ -153,19 +116,13 @@ namespace PatientManagementSystem.Controllers
 
             try
             {
-                // Upload images to S3 if provided
-                if (FrontImage != null)
-                    patient.FrontImageUrl = await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}");
-                if (LeftImage != null)
-                    patient.LeftImageUrl = await UploadToS3Async(LeftImage, $"patients/{Guid.NewGuid()}_left.{LeftImage.ContentType.Split('/')[1]}");
-                if (RightImage != null)
-                    patient.RightImageUrl = await UploadToS3Async(RightImage, $"patients/{Guid.NewGuid()}_right.{RightImage.ContentType.Split('/')[1]}");
-                if (BackImage != null)
-                    patient.BackImageUrl = await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}");
+                patient.FrontImageUrl = FrontImage != null ? await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}") : patient.FrontImageUrl;
+                patient.LeftImageUrl = LeftImage != null ? await UploadToS3Async(LeftImage, $"patients/{Guid.NewGuid()}_left.{LeftImage.ContentType.Split('/')[1]}") : patient.LeftImageUrl;
+                patient.RightImageUrl = RightImage != null ? await UploadToS3Async(RightImage, $"patients/{Guid.NewGuid()}_right.{RightImage.ContentType.Split('/')[1]}") : patient.RightImageUrl;
+                patient.BackImageUrl = BackImage != null ? await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}") : patient.BackImageUrl;
 
                 _context.Update(patient);
                 await _context.SaveChangesAsync();
-
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException)
@@ -183,7 +140,7 @@ namespace PatientManagementSystem.Controllers
             if (!id.HasValue)
                 return NotFound();
 
-            var patient = await _context.Patients.FirstOrDefaultAsync(m => m.Id == id);
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
             if (patient == null)
                 return NotFound();
 
@@ -205,7 +162,7 @@ namespace PatientManagementSystem.Controllers
 
         private bool PatientExists(int id)
         {
-            return _context.Patients.Any(e => e.Id == id);
+            return _context.Patients.Any(p => p.Id == id);
         }
 
         private async Task<string> UploadToS3Async(IFormFile file, string fileName)
@@ -225,7 +182,7 @@ namespace PatientManagementSystem.Controllers
                 BucketName = _configuration["AWS:BucketName"],
                 Key = fileName,
                 ContentType = file.ContentType,
-                CannedACL = S3CannedACL.PublicRead // Make the file publicly accessible
+                CannedACL = S3CannedACL.PublicRead // Publicly accessible
             };
 
             await transferUtility.UploadAsync(uploadRequest);

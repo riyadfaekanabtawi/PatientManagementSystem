@@ -28,5 +28,16 @@ namespace PatientManagementSystem.Models
         public string? LeftImageUrl { get; set; }
         public string? RightImageUrl { get; set; }
         public string? BackImageUrl { get; set; }
+        public string? Model3DUrl { get; set; }
+        
+        public ICollection<FaceAdjustmentHistory>? AdjustmentHistory { get; set; }
     }
+}
+
+public class FaceAdjustmentHistory
+{
+    public int Id { get; set; }
+    public int PatientId { get; set; }
+    public string AdjustedImageUrl { get; set; } = null!;
+    public DateTime AdjustmentDate { get; set; }
 }

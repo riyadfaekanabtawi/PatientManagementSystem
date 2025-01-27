@@ -46,6 +46,7 @@
                     </td>
                     <td>
                         <div class="d-flex gap-2">
+                            <a asp-action="AdjustFace" asp-route-id="@patient.Id" class="btn btn-warning btn-sm">Ajustar Rostro</a>
                             <a asp-controller="Patients" asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-warning btn-sm">Editar</a>
                             <a asp-controller="Patients" asp-action="Delete" asp-route-id="@patient.Id" class="btn btn-danger btn-sm">Eliminar</a>
                         </div>

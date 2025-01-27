@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PatientManagementSystem.Data;
@@ -11,9 +12,11 @@ using PatientManagementSystem.Data;
 namespace PatientManagementSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250127014352_AddFaceAdjustmentHistories")]
+    partial class AddFaceAdjustmentHistories
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -110,9 +113,6 @@ namespace PatientManagementSystem.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("LeftImageUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Model3DUrl")
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
