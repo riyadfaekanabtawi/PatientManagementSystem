@@ -3,6 +3,12 @@ using PatientManagementSystem.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Increase the request size limit
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 52428800; // 50 MB
+});
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
