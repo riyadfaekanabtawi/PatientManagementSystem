@@ -48,9 +48,17 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Patients/Create
-        public IActionResult Create()
+       public IActionResult Create()
         {
-            return View();
+            // Ensure the model is initialized before passing it to the view
+            var model = new Patient
+            {
+                FrontImageUrl = string.Empty,
+                LeftImageUrl = string.Empty,
+                RightImageUrl = string.Empty,
+                BackImageUrl = string.Empty, // Initialize any required properties
+            }; 
+            return View(model);
         }
 
         // POST: Patients/Create
