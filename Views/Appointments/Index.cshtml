@@ -1,18 +1,18 @@
 @model IEnumerable<PatientManagementSystem.Models.Appointment>
 
-<h2>Appointments</h2>
+<h2>Citas</h2>
 
 <!-- Add Create Appointment Button -->
 <div class="d-flex justify-content-between mb-3">
     <form method="get" asp-action="Index" class="d-flex gap-3">
         <div class="form-group">
-            <label for="date">Filter by Date</label>
+            <label for="date">Filtrar por Fecha</label>
             <input type="date" name="date" class="form-control" />
         </div>
         <div class="form-group">
-            <label for="patientId">Filter by Patient</label>
+            <label for="patientId">Filtrar por Paciente</label>
             <select name="patientId" class="form-control">
-                <option value="">All Patients</option>
+                <option value="">Todos Los Pacientes</option>
                 @if (ViewData["Patients"] != null && ViewData["Patients"] is IEnumerable<dynamic> patients)
                 {
                     foreach (var patient in patients)
@@ -22,22 +22,22 @@
                 }
             </select>
         </div>
-        <button type="submit" class="btn btn-primary align-self-end">Filter</button>
+        <button type="submit" class="btn btn-primary align-self-end">Filtrar</button>
     </form>
 
     <!-- Create Appointment Button -->
-    <a asp-action="CreateAppointment" class="btn btn-success align-self-end">Create Appointment</a>
+    <a asp-action="CreateAppointment" class="btn btn-success align-self-end">Crear Cita</a>
 </div>
 
 <table class="table">
     <thead>
         <tr>
-            <th>Patient Name</th>
+            <th>Nombre</th>
             <th>Email</th>
-            <th>Appointment Date & Time</th>
-            <th>Notes</th>
-            <th>Images</th>
-            <th>Actions</th>
+            <th>Fecha y Hora</th>
+            <th>Notas</th>
+            <th>Imagenes</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -69,10 +69,10 @@
                         }
                     </td>
                     <td>
-                        <a asp-action="Details" asp-route-id="@appointment.Id" class="btn btn-info btn-sm">Details</a>
-                        <a asp-action="Edit" asp-route-id="@appointment.Id" class="btn btn-warning btn-sm">Edit</a>
+                        <a asp-action="Details" asp-route-id="@appointment.Id" class="btn btn-info btn-sm">Detalles</a>
+                        <a asp-action="Edit" asp-route-id="@appointment.Id" class="btn btn-warning btn-sm">Editar</a>
                         <form asp-action="Delete" asp-route-id="@appointment.Id" method="post" class="d-inline">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
                         </form>
                     </td>
                 </tr>
@@ -81,7 +81,7 @@
         else
         {
             <tr>
-                <td colspan="6" class="text-center">No appointments available.</td>
+                <td colspan="6" class="text-center">No hay Citas Disponibles.</td>
             </tr>
         }
     </tbody>
