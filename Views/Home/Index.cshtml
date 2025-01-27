@@ -1,51 +1,57 @@
 ﻿@model IEnumerable<PatientManagementSystem.Models.Patient>
 
-<h1>Welcome</h1>
-<p>List of Patients:</p>
+<h1 class="mb-4">Bienvenido</h1>
+<p class="lead">Listado de Pacientes:</p>
 
-<a asp-controller="Patients" asp-action="Create" class="btn btn-primary mb-3">Create New Patient</a>
+<div class="mb-3">
+    <a asp-controller="Patients" asp-action="Create" class="btn btn-primary">Cargar nuevo Paciente</a>
+</div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Date of Birth</th>
-            <th>Email</th>
-            <th>Contact</th>
-            <th>FroontImage</th>
-            <th>LeftImage</th>
-            <th>RightImage</th>
-            <th>BackImage</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var patient in Model)
-        {
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
             <tr>
-                <td>@patient.Id</td>
-                <td>@patient.Name</td>
-                <td>@patient.DateOfBirth.ToShortDateString()</td>
-                <td>@patient.Email</td>
-                <td>@patient.Contact</td>
-                <td>
-                    <img src="@patient.FrontImageUrl" alt="Front" class="img-thumbnail rounded-circle" style="width: 50px; height: 50px;" />
-                </td>
-                <td>
-                    <img src="@patient.LeftImageUrl" alt="Front" class="img-thumbnail rounded-circle" style="width: 50px; height: 50px;" />
-                </td>
-                <td>
-                    <img src="@patient.RightImageUrl" alt="Front" class="img-thumbnail rounded-circle" style="width: 50px; height: 50px;" />
-                </td>
-                <td>
-                    <img src="@patient.BackImageUrl" alt="Front" class="img-thumbnail rounded-circle" style="width: 50px; height: 50px;" />
-                </td>
-                <td>
-                    <a asp-controller="Patients" asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-warning btn-sm">Edit</a>
-                    <a asp-controller="Patients" asp-action="Delete" asp-route-id="@patient.Id" class="btn btn-danger btn-sm">Delete</a>
-                </td>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Fecha Nacimiento</th>
+                <th>Email</th>
+                <th>Contacto</th>
+                <th>Frente</th>
+                <th>L. Izq</th>
+                <th>L. Derecho</th>
+                <th>Atras</th>
+                <th></th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var patient in Model)
+            {
+                <tr>
+                    <td>@patient.Id</td>
+                    <td>@patient.Name</td>
+                    <td>@patient.DateOfBirth.ToShortDateString()</td>
+                    <td>@patient.Email</td>
+                    <td>@patient.Contact</td>
+                    <td>
+                        <img src="@patient.FrontImageUrl" alt="Front" class="img-fluid rounded-circle" style="width: 50px; height: 50px;" />
+                    </td>
+                    <td>
+                        <img src="@patient.LeftImageUrl" alt="Left" class="img-fluid rounded-circle" style="width: 50px; height: 50px;" />
+                    </td>
+                    <td>
+                        <img src="@patient.RightImageUrl" alt="Right" class="img-fluid rounded-circle" style="width: 50px; height: 50px;" />
+                    </td>
+                    <td>
+                        <img src="@patient.BackImageUrl" alt="Back" class="img-fluid rounded-circle" style="width: 50px; height: 50px;" />
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a asp-controller="Patients" asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-warning btn-sm">Editar</a>
+                            <a asp-controller="Patients" asp-action="Delete" asp-route-id="@patient.Id" class="btn btn-danger btn-sm">Eliminar</a>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,53 +1,57 @@
 @model IEnumerable<PatientManagementSystem.Models.Patient>
 
-@{
-    ViewData["Title"] = "Index";
-}
+<h1 class="mb-4">Bienvenido</h1>
+<p class="lead">Listado de Pacientes:</p>
 
-<h1>Pacientes Registrados</h1>
+<div class="mb-3">
+    <a asp-controller="Patients" asp-action="Create" class="btn btn-primary">Cargar nuevo Paciente</a>
+</div>
 
-<p>
-    <a asp-action="Create">Cargar Paciente</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                Nombre
-            </th>
-            <th>
-                Fecha de Nacimiento
-            </th>
-            <th>
-               Email
-            </th>
-            <th>
-                Contacto
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.DateOfBirth)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Email)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Contact)
-            </td>
-            <td>
-                 <a asp-action="Edit" asp-route-id="@item.Id">Editar</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Detalle</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Eliminar</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Fecha Nacimiento</th>
+                <th>Email</th>
+                <th>Contacto</th>
+                <th>Frente</th>
+                <th>L. Izq</th>
+                <th>L. Derecho</th>
+                <th>Atras</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var patient in Model)
+            {
+                <tr>
+                    <td>@patient.Id</td>
+                    <td>@patient.Name</td>
+                    <td>@patient.DateOfBirth.ToShortDateString()</td>
+                    <td>@patient.Email</td>
+                    <td>@patient.Contact</td>
+                    <td>
+                        <img src="@patient.FrontImageUrl" alt="Front" class="img-fluid rounded-circle" style="width: 50px; height: 50px;" />
+                    </td>
+                    <td>
+                        <img src="@patient.LeftImageUrl" alt="Left" class="img-fluid rounded-circle" style="width: 50px; height: 50px;" />
+                    </td>
+                    <td>
+                        <img src="@patient.RightImageUrl" alt="Right" class="img-fluid rounded-circle" style="width: 50px; height: 50px;" />
+                    </td>
+                    <td>
+                        <img src="@patient.BackImageUrl" alt="Back" class="img-fluid rounded-circle" style="width: 50px; height: 50px;" />
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a asp-controller="Patients" asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-warning btn-sm">Editar</a>
+                            <a asp-controller="Patients" asp-action="Delete" asp-route-id="@patient.Id" class="btn btn-danger btn-sm">Eliminar</a>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
