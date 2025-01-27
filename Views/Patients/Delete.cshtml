@@ -9,41 +9,41 @@
 @if (Model == null)
 {
     <div class="alert alert-danger">
-        <p>The appointment details are not available. Please return to the list and try again.</p>
+        <p>Los detalles de la cita no estan disponible, regresa al listado.</p>
         <a asp-action="Index" class="btn btn-primary">Back to List</a>
     </div>
 }
 else
 {
-    <h3>Are you sure you want to delete this appointment?</h3>
+    <h3>Esta seguro que quiere eliminar esta cita?</h3>
     <div>
-        <h4>Appointment Details</h4>
+        <h4>Detalles de la cita</h4>
         <hr />
         <dl class="row">
             <dt class="col-sm-2">
-                Patient Name
+                Nombre Paciente
             </dt>
             <dd class="col-sm-10">
-                @Model.Patient?.Name ?? "Unknown"
+                @Model.Patient?.Name
             </dd>
             <dt class="col-sm-2">
-                Date and Time
+                Fecha y Hora
             </dt>
             <dd class="col-sm-10">
                 @Model.AppointmentDateTime.ToString("f")
             </dd>
             <dt class="col-sm-2">
-                Notes
+                Notas
             </dt>
             <dd class="col-sm-10">
-                @Model.Notes ?? "No notes available"
+                @Model.Notes
             </dd>
         </dl>
 
         <form asp-action="Delete" method="post">
             <input type="hidden" asp-for="Id" />
-            <button type="submit" class="btn btn-danger">Delete</button>
-            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-danger">Eliminar</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
         </form>
     </div>
 }
