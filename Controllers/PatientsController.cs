@@ -48,6 +48,9 @@ namespace PatientManagementSystem.Controllers
             var model = new Patient
             {
                 Name = string.Empty,
+                DateOfBirth = DateTime.Today, // Default date to avoid validation issues
+                Email = string.Empty,
+                Contact = string.Empty,
                 FrontImageUrl = string.Empty,
                 LeftImageUrl = string.Empty,
                 RightImageUrl = string.Empty,
@@ -57,7 +60,7 @@ namespace PatientManagementSystem.Controllers
             return View(model);
         }
 
-        // POST: Patients/Create
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
@@ -68,11 +71,25 @@ namespace PatientManagementSystem.Controllers
             IFormFile? BackImage)
         {
             if (!ModelState.IsValid)
-                return View(patient);
+            {
+                Console.WriteLine("ModelState is invalid:");
+                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    Console.WriteLine($"- {error.ErrorMessage}");
+                }
+
+                // Re-initialize image URLs for display in the form
+                patient.FrontImageUrl ??= string.Empty;
+                patient.LeftImageUrl ??= string.Empty;
+                patient.RightImageUrl ??= string.Empty;
+                patient.BackImageUrl ??= string.Empty;
+
+                return View(patient); // Pass the model back to the view
+            }
 
             try
             {
-                // Upload images to S3 if provided
+                // Handle image uploads
                 if (FrontImage != null)
                     patient.FrontImageUrl = await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}");
                 if (LeftImage != null)
@@ -82,6 +99,7 @@ namespace PatientManagementSystem.Controllers
                 if (BackImage != null)
                     patient.BackImageUrl = await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}");
 
+                // Save patient
                 _context.Add(patient);
                 await _context.SaveChangesAsync();
 
@@ -89,10 +107,19 @@ namespace PatientManagementSystem.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Exception: {ex.Message}");
                 ModelState.AddModelError(string.Empty, $"An error occurred: {ex.Message}");
+
+                // Re-initialize image URLs for display in the form
+                patient.FrontImageUrl ??= string.Empty;
+                patient.LeftImageUrl ??= string.Empty;
+                patient.RightImageUrl ??= string.Empty;
+                patient.BackImageUrl ??= string.Empty;
+
                 return View(patient);
             }
         }
+
 
         // GET: Patients/Edit/5
         public async Task<IActionResult> Edit(int? id)
