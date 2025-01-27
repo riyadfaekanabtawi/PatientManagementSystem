@@ -4,7 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <IntermediateOutputPath>obj/intermediate/</IntermediateOutputPath>
+   <!-- Set dedicated intermediate and output directories -->
+    <IntermediateOutputPath>obj/build/</IntermediateOutputPath>
+    <OutputPath>bin/build/</OutputPath>
+    
   </PropertyGroup>
 
   <ItemGroup>
