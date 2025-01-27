@@ -1,6 +1,6 @@
 @model IEnumerable<PatientManagementSystem.Models.Patient>
 
-<h2>Create Appointment</h2>
+<h2>Agendar Cita</h2>
 
 <div class="row">
     <!-- Form Section -->
@@ -8,7 +8,7 @@
         <form id="appointmentForm" asp-action="CreateAppointment" method="post">
             <input type="hidden" id="appointmentDateTime" name="AppointmentDateTime" />
             <div class="form-group">
-                <label for="patientIdDropdown">Select Patient</label>
+                <label for="patientIdDropdown">Seleccionar Paciente</label>
                 <select id="patientIdDropdown" name="PatientId" class="form-control">
                     @if (Model != null && Model.Any())
                     {
@@ -19,16 +19,16 @@
                     }
                     else
                     {
-                        <option value="">No patients available</option>
+                        <option value="">No hay pacientes Disponibles</option>
                     }
                 </select>
             </div>
             <div class="form-group">
-                <label for="notes">Notes</label>
+                <label for="notes">Notas</label>
                 <textarea id="notes" name="Notes" class="form-control"></textarea>
             </div>
             <br>
-            <button type="submit" class="btn btn-primary">Book Appointment</button>
+            <button type="submit" class="btn btn-primary">Reservar</button>
         </form>
     </div>
 
