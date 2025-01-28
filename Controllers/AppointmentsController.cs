@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PatientManagementSystem.Data;
 using PatientManagementSystem.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace PatientManagementSystem.Controllers
 {
-    public class AppointmentsController : Controller
+    public class AppointmentsController : BaseController
     {
         private readonly AppDbContext _context;
 

@@ -1,10 +1,10 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using PatientManagementSystem.Data;
 using PatientManagementSystem.Models;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace PatientManagementSystem.Controllers
 {
@@ -17,28 +17,56 @@ namespace PatientManagementSystem.Controllers
             _context = context;
         }
 
+        // GET: Admin/Login
+        public IActionResult Login()
+        {
+            if (HttpContext.Session.GetString("AdminLoggedIn") != null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+            return View();
+        }
+
+        // POST: Admin/Login
+        [HttpPost]
+        public IActionResult Login(string email, string password)
+        {
+            var admin = _context.Admins.FirstOrDefault(a => a.Email == email);
+            if (admin != null && BCrypt.Net.BCrypt.Verify(password, admin.Password))
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", admin.Id.ToString());
+                return RedirectToAction("Index", "Home");
+            }
+
+            ViewBag.Error = "Correo o contraseña incorrectos.";
+            return View();
+        }
+
+        // GET: Admin/Logout
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login");
+        }
+
         // GET: Admin
         public async Task<IActionResult> Index()
         {
-            var admins = await _context.Admins.ToListAsync();
+            if (!IsAuthenticated()) return RedirectToAction("Login");
+
+            var admins = await Task.FromResult(_context.Admins.ToList());
             return View(admins);
         }
 
         // GET: Admin/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (!id.HasValue)
-            {
-                return NotFound();
-            }
+            if (!IsAuthenticated()) return RedirectToAction("Login");
 
-            var admin = await _context.Admins
-                .FirstOrDefaultAsync(m => m.Id == id);
+            if (id == null) return NotFound();
 
-            if (admin == null)
-            {
-                return NotFound();
-            }
+            var admin = await _context.Admins.FindAsync(id);
+            if (admin == null) return NotFound();
 
             return View(admin);
         }
@@ -46,6 +74,8 @@ namespace PatientManagementSystem.Controllers
         // GET: Admin/Create
         public IActionResult Create()
         {
+            if (!IsAuthenticated()) return RedirectToAction("Login");
+
             return View();
         }
 
@@ -54,9 +84,10 @@ namespace PatientManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Name,Email,Password")] Admin admin)
         {
+            if (!IsAuthenticated()) return RedirectToAction("Login");
+
             if (ModelState.IsValid)
             {
-                // Encrypt password before saving
                 admin.Password = BCrypt.Net.BCrypt.HashPassword(admin.Password);
                 _context.Add(admin);
                 await _context.SaveChangesAsync();
@@ -68,16 +99,13 @@ namespace PatientManagementSystem.Controllers
         // GET: Admin/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (!id.HasValue)
-            {
-                return NotFound();
-            }
+            if (!IsAuthenticated()) return RedirectToAction("Login");
+
+            if (id == null) return NotFound();
 
             var admin = await _context.Admins.FindAsync(id);
-            if (admin == null)
-            {
-                return NotFound();
-            }
+            if (admin == null) return NotFound();
+
             return View(admin);
         }
 
@@ -86,26 +114,20 @@ namespace PatientManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Email,Password")] Admin admin)
         {
-            if (id != admin.Id)
-            {
-                return NotFound();
-            }
+            if (!IsAuthenticated()) return RedirectToAction("Login");
+
+            if (id != admin.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
                 try
                 {
                     var existingAdmin = await _context.Admins.FindAsync(id);
-                    if (existingAdmin == null)
-                    {
-                        return NotFound();
-                    }
+                    if (existingAdmin == null) return NotFound();
 
-                    // Update fields
                     existingAdmin.Name = admin.Name;
                     existingAdmin.Email = admin.Email;
 
-                    // Update password only if a new one is provided
                     if (!string.IsNullOrWhiteSpace(admin.Password))
                     {
                         existingAdmin.Password = BCrypt.Net.BCrypt.HashPassword(admin.Password);
@@ -116,14 +138,8 @@ namespace PatientManagementSystem.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!AdminExists(admin.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    if (!AdminExists(admin.Id)) return NotFound();
+                    throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
@@ -133,17 +149,12 @@ namespace PatientManagementSystem.Controllers
         // GET: Admin/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (!id.HasValue)
-            {
-                return NotFound();
-            }
+            if (!IsAuthenticated()) return RedirectToAction("Login");
 
-            var admin = await _context.Admins
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (admin == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
+
+            var admin = await _context.Admins.FindAsync(id);
+            if (admin == null) return NotFound();
 
             return View(admin);
         }
@@ -153,6 +164,8 @@ namespace PatientManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            if (!IsAuthenticated()) return RedirectToAction("Login");
+
             var admin = await _context.Admins.FindAsync(id);
             if (admin != null)
             {
@@ -165,6 +178,11 @@ namespace PatientManagementSystem.Controllers
         private bool AdminExists(int id)
         {
             return _context.Admins.Any(e => e.Id == id);
+        }
+
+        private bool IsAuthenticated()
+        {
+            return HttpContext.Session.GetString("AdminLoggedIn") != null;
         }
     }
 }

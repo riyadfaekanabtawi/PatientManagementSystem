@@ -10,10 +10,11 @@ using Amazon.S3.Transfer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 
 namespace PatientManagementSystem.Controllers
 {
-    public class PatientsController : Controller
+    public class PatientsController : BaseController
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
