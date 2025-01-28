@@ -25,6 +25,14 @@ namespace PatientManagementSystem.Controllers
             _configuration = configuration;
         }
 
+        [HttpGet("/test-session")]
+        public IActionResult TestSession()
+        {
+            HttpContext.Session.SetString("TestKey", "TestValue");
+            var value = HttpContext.Session.GetString("TestKey");
+            return Ok($"Session value: {value ?? "null"}");
+        }
+
         // GET: Patients
         public async Task<IActionResult> Index()
         {
