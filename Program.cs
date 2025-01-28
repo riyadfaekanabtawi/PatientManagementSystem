@@ -26,6 +26,9 @@ builder.Services.AddSession(options =>
 
 // Add distributed memory cache (required for session handling)
 builder.Services.AddDistributedMemoryCache();
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole(); // Enables console logging
+builder.Logging.AddDebug(); 
 
 var app = builder.Build();
 
