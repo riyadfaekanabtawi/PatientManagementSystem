@@ -19,10 +19,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Add session services
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // Set session timeout to 30 minutes
-    options.Cookie.HttpOnly = true; // Ensures cookies are not accessible via JavaScript
-    options.Cookie.IsEssential = true; // Essential for GDPR compliance
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Allow cookies on HTTP
+    options.Cookie.SameSite = SameSiteMode.None; // Prevent SameSite issues
 });
+
+
 
 // Add distributed memory cache (required for session handling)
 builder.Services.AddDistributedMemoryCache();
@@ -42,10 +46,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-
 // Use session middleware
 app.UseSession();
-
 app.UseAuthorization();
 
 app.MapControllerRoute(
