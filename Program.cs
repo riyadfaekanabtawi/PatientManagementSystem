@@ -24,6 +24,9 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true; // Essential for GDPR compliance
 });
 
+// Add distributed memory cache (required for session handling)
+builder.Services.AddDistributedMemoryCache();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
