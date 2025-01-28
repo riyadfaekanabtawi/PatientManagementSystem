@@ -10,6 +10,7 @@ namespace PatientManagementSystem.Data
         public DbSet<Patient> Patients { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<FaceAdjustmentHistory> FaceAdjustmentHistories { get; set; }
+        public DbSet<Admin> Admins { get; set; }
         public override int SaveChanges()
         {
             foreach (var entry in ChangeTracker.Entries<Patient>())

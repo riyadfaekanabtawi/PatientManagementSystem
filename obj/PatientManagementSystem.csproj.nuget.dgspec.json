@@ -47,6 +47,10 @@
               "target": "Package",
               "version": "[3.7.412.4, )"
             },
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.0.0, )"
@@ -69,11 +73,11 @@
             },
             "Microsoft.Extensions.Configuration": {
               "target": "Package",
-              "version": "[9.0.1, )"
+              "version": "[8.0.0, )"
             },
             "Microsoft.Extensions.Configuration.Json": {
               "target": "Package",
-              "version": "[9.0.1, )"
+              "version": "[8.0.0, )"
             },
             "Microsoft.VisualStudio.Web.CodeGeneration.Design": {
               "target": "Package",
