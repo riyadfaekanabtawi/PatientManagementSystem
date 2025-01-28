@@ -19,11 +19,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Add session services
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Allow cookies on HTTP
-    options.Cookie.SameSite = SameSiteMode.None; // Prevent SameSite issues
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session timeout
+    options.Cookie.HttpOnly = true; // Secure the cookie
+    options.Cookie.IsEssential = true; // Ensure the cookie is essential
 });
 
 
