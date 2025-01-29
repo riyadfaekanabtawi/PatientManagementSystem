@@ -41,6 +41,8 @@ namespace PatientManagementSystem.Controllers
                 HttpContext.Session.SetString("AdminLoggedIn", admin.Id.ToString());
 
                 _logger.LogInformation($"AdminLoggedIn session set for Admin ID: {admin.Id}");
+                var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
+                 _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
                 return RedirectToAction("Index", "Home");
             }
 
