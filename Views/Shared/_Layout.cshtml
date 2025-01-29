@@ -11,35 +11,41 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    @if (HttpContextAccessor.HttpContext.Session.GetString("AdminLoggedIn") != null)
-    {
-        <header>
-            <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-3">
-                <div class="container">
-                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PatientManagementSystem</a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="collapse navbar-collapse" id="navbarNav">
-                        <ul class="navbar-nav ms-auto">
-                            <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Pacientes</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Appointments" asp-action="Index">Citas</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Index">Administradores</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Admin" asp-action="Logout">Cerrar Sesión</a>
-                            </li>
-                        </ul>
-                    </div>
+<p>Session Debug: @HttpContextAccessor.HttpContext.Session.GetString("AdminLoggedIn")</p>
+
+@if (!string.IsNullOrEmpty(HttpContextAccessor.HttpContext.Session.GetString("AdminLoggedIn")))
+{
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PatientManagementSystem</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Pacientes</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-controller="Appointments" asp-action="Index">Citas</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Index">Administradores</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Admin" asp-action="Logout">Cerrar Sesión</a>
+                        </li>
+                    </ul>
                 </div>
-            </nav>
-        </header>
-    }
+            </div>
+        </nav>
+    </header>
+}
+else
+{
+    <p>Admin is NOT logged in.</p>
+}
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
