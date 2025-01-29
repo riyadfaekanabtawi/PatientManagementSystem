@@ -27,10 +27,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // Configure session services to use Redis
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session timeout
-    options.Cookie.HttpOnly = true; // Secure the cookie
-    options.Cookie.IsEssential = true; // Ensure the cookie is essential
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Use `SameAsRequest` for secure handling
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Use Always for HTTPS
+    options.Cookie.SameSite = SameSiteMode.Lax; // Prevent cross-origin issues
 });
 
 // Register IHttpContextAccessor
