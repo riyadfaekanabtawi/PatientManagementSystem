@@ -29,7 +29,7 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30); // Session timeout
     options.Cookie.HttpOnly = true; // Secure the cookie
     options.Cookie.IsEssential = true; // Ensure the cookie is essential
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Use `None` for non-HTTPS environments
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Use `SameAsRequest` for secure handling
 });
 
 // Add logging for debugging
@@ -50,7 +50,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// Use session middleware
+// Ensure session middleware is used before routing and authorization
 app.UseSession();
 
 app.UseAuthorization();

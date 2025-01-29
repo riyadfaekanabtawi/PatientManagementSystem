@@ -27,20 +27,22 @@ namespace PatientManagementSystem.Controllers
             return View();
         }
 
-        // POST: Admin/Login
         [HttpPost]
         public IActionResult Login(string email, string password)
         {
             var admin = _context.Admins.FirstOrDefault(a => a.Email == email);
-            if (admin != null)
+            if (admin != null && BCrypt.Net.BCrypt.Verify(password, admin.Password))
             {
                 HttpContext.Session.SetString("AdminLoggedIn", admin.Id.ToString());
+                // Log to confirm session setting
+                Console.WriteLine($"AdminLoggedIn set to: {admin.Id}");
                 return RedirectToAction("Index", "Home");
             }
 
             ViewBag.Error = "Correo o contraseña incorrectos.";
             return View();
         }
+
 
         // GET: Admin/Logout
         public IActionResult Logout()
