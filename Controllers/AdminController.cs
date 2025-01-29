@@ -11,10 +11,12 @@ namespace PatientManagementSystem.Controllers
     public class AdminController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<AdminController> _logger;
 
         public AdminController(AppDbContext context)
         {
             _context = context;
+            _logger = logger;
         }
 
         // GET: Admin/Login
@@ -36,8 +38,7 @@ namespace PatientManagementSystem.Controllers
             {
                 HttpContext.Session.SetString("AdminLoggedIn", admin.Id.ToString());
 
-                // Log session set
-                Console.WriteLine($"[DEBUG] AdminLoggedIn session set to: {admin.Id}");
+                // Log session state
                 _logger.LogInformation($"AdminLoggedIn session set for Admin ID: {admin.Id}");
 
                 return RedirectToAction("Index", "Home");
