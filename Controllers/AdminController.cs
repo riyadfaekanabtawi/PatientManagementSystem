@@ -31,17 +31,24 @@ namespace PatientManagementSystem.Controllers
         public IActionResult Login(string email, string password)
         {
             var admin = _context.Admins.FirstOrDefault(a => a.Email == email);
+
             if (admin != null && BCrypt.Net.BCrypt.Verify(password, admin.Password))
             {
                 HttpContext.Session.SetString("AdminLoggedIn", admin.Id.ToString());
-                // Log to confirm session setting
-                Console.WriteLine($"AdminLoggedIn set to: {admin.Id}");
+
+                // Log session set
+                Console.WriteLine($"[DEBUG] AdminLoggedIn session set to: {admin.Id}");
+                _logger.LogInformation($"AdminLoggedIn session set for Admin ID: {admin.Id}");
+
                 return RedirectToAction("Index", "Home");
             }
 
+            _logger.LogWarning($"Failed login attempt for email: {email}");
             ViewBag.Error = "Correo o contraseña incorrectos.";
+
             return View();
         }
+
 
 
         // GET: Admin/Logout
