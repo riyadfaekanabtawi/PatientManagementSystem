@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using PatientManagementSystem.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +12,7 @@ builder.WebHost.ConfigureKestrel(options =>
 
 // Add services to the container
 builder.Services.AddControllersWithViews();
-builder.Services.AddHttpContextAccessor();
+
 // Add PostgreSQL DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -32,10 +33,15 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Use `SameAsRequest` for secure handling
 });
 
-// Add logging for debugging
+// Register IHttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
+// Configure Logging
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole(); // Console logging
-builder.Logging.AddDebug(); // Debug logging
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.AddFilter("Microsoft.AspNetCore.Session", LogLevel.Debug); // Enable session logs
+builder.Logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Debug); // Enable HTTP logs
 
 var app = builder.Build();
 
