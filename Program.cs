@@ -11,7 +11,7 @@ builder.WebHost.ConfigureKestrel(options =>
 
 // Add services to the container
 builder.Services.AddControllersWithViews();
-
+builder.Services.AddHttpContextAccessor();
 // Add PostgreSQL DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
