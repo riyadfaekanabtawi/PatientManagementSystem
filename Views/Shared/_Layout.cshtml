@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -8,7 +11,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    @if (HttpContext.Session.GetString("AdminLoggedIn") != null)
+    @if (HttpContextAccessor.HttpContext.Session.GetString("AdminLoggedIn") != null)
     {
         <header>
             <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-3">
