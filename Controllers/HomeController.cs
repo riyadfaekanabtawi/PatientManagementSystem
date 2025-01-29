@@ -20,6 +20,8 @@ namespace PatientManagementSystem.Controllers
         public IActionResult Index()
         {
             var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
+            var cookies = HttpContext.Request.Headers["Cookie"];
+            _logger.LogInformation($"[DEBUG] Cookies Received: {cookies}");
             _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
 
             if (sessionValue == null)
@@ -30,6 +32,7 @@ namespace PatientManagementSystem.Controllers
             var patients = _context.Patients.ToList();
             return View(patients);
         }
+
 
 
         public IActionResult Privacy()

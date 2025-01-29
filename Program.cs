@@ -20,8 +20,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Add Redis for session storage
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = builder.Configuration.GetConnectionString("RedisConnection");
-    options.InstanceName = "Session_"; // Optional: Prefix for keys in Redis
+    options.Configuration = "localhost:6379"; // Adjust for your Redis server address
+    options.InstanceName = "Session_";
 });
 
 // Configure session services to use Redis
@@ -30,8 +30,8 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Use Always for HTTPS
-    options.Cookie.SameSite = SameSiteMode.Lax; // Prevent cross-origin issues
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Use Always if using HTTPS
+    options.Cookie.SameSite = SameSiteMode.Lax; // Prevent cross-origin cookie issues
 });
 
 // Register IHttpContextAccessor
