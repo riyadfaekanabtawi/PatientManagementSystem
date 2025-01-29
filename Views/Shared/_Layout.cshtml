@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
+
 <p>Session Debug: @HttpContextAccessor.HttpContext.Session.GetString("AdminLoggedIn")</p>
 
 @if (!string.IsNullOrEmpty(HttpContextAccessor.HttpContext.Session.GetString("AdminLoggedIn")))

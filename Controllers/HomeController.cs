@@ -19,7 +19,10 @@ namespace PatientManagementSystem.Controllers
 
         public IActionResult Index()
         {
-            if (HttpContext.Session.GetString("AdminLoggedIn") == null)
+            var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
+            _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
+
+            if (sessionValue == null)
             {
                 return RedirectToAction("Login", "Admin");
             }
@@ -27,6 +30,7 @@ namespace PatientManagementSystem.Controllers
             var patients = _context.Patients.ToList();
             return View(patients);
         }
+
 
         public IActionResult Privacy()
         {
