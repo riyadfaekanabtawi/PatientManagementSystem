@@ -14,7 +14,7 @@ namespace PatientManagementSystem.Controllers
         private readonly AppDbContext _context;
         private readonly ILogger<AdminController> _logger;
 
-        public AdminController(AppDbContext context)
+        public AdminController(AppDbContext context, ILogger<AdminController> logger)
         {
             _context = context;
             _logger = logger;
@@ -30,6 +30,7 @@ namespace PatientManagementSystem.Controllers
             return View();
         }
 
+        // POST: Admin/Login
         [HttpPost]
         public IActionResult Login(string email, string password)
         {
@@ -50,8 +51,6 @@ namespace PatientManagementSystem.Controllers
 
             return View();
         }
-
-
 
         // GET: Admin/Logout
         public IActionResult Logout()
@@ -197,4 +196,3 @@ namespace PatientManagementSystem.Controllers
         }
     }
 }
-
