@@ -27,7 +27,7 @@ public class ThreeDModelService : I3DModelService
 
         try
         {
-            var response = await _httpClient.PostAsync("http://localhost:5001/generate", content);
+            var response = await _httpClient.PostAsync("http://18.117.78.61/flask-api/generate", content);
             if (response.IsSuccessStatusCode)
             {
                 var responseData = await response.Content.ReadAsStringAsync();
