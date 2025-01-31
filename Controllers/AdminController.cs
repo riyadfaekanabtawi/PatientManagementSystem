@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using BCrypt.Net;
+
 namespace PatientManagementSystem.Controllers
 {
     public class AdminController : Controller
@@ -20,50 +21,204 @@ namespace PatientManagementSystem.Controllers
             _logger = logger;
         }
 
-        // GET: Admin/Login
-        public IActionResult Login()
+        // GET: Admin/Index
+        public async Task<IActionResult> Index()
         {
-            if (HttpContext.Session.GetString("AdminLoggedIn") != null)
+            if (!IsAuthenticated())
             {
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Login");
             }
+
+            var admins = await _context.Admins.ToListAsync();
+            return View(admins);
+        }
+
+        // GET: Admin/Create
+        public IActionResult Create()
+        {
+            if (!IsAuthenticated())
+            {
+                return RedirectToAction("Login");
+            }
+
             return View();
         }
 
-        // POST: Admin/Login
+        // POST: Admin/Create
         [HttpPost]
-        public IActionResult Login(string email, string password)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Admin admin)
         {
-            var admin = _context.Admins.FirstOrDefault(a => a.Email == email);
-
-            if (admin != null && BCrypt.Net.BCrypt.Verify(password, admin.Password))
+            if (!IsAuthenticated())
             {
-                HttpContext.Session.SetString("AdminLoggedIn", admin.Id.ToString());
-
-                _logger.LogInformation($"AdminLoggedIn session set for Admin ID: {admin.Id}");
-                var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
-                 _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
-                return RedirectToAction("Index", "Home", new { session_id = admin.Id });
+                return RedirectToAction("Login");
             }
 
-            _logger.LogWarning($"Failed login attempt for email: {email}");
-            ViewBag.Error = "Correo o contraseña incorrectos.";
+            if (ModelState.IsValid)
+            {
+                // Hash the password before saving
+                admin.Password = BCrypt.Net.BCrypt.HashPassword(admin.Password);
 
-            return View();
+                _context.Add(admin);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"New admin created with email: {admin.Email}");
+                return RedirectToAction(nameof(Index));
+            }
+            return View(admin);
         }
 
-        // GET: Admin/Logout
-        public IActionResult Logout()
+        // GET: Admin/Edit/5
+        public async Task<IActionResult> Edit(int? id)
         {
-            HttpContext.Session.Clear();
-            return RedirectToAction("Login");
+            if (!IsAuthenticated())
+            {
+                return RedirectToAction("Login");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var admin = await _context.Admins.FindAsync(id);
+            if (admin == null)
+            {
+                return NotFound();
+            }
+
+            return View(admin);
         }
 
-        // Other actions remain unchanged...
+        // POST: Admin/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, Admin admin)
+        {
+            if (!IsAuthenticated())
+            {
+                return RedirectToAction("Login");
+            }
 
+            if (id != admin.Id)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    // Update the password only if it's provided (optional)
+                    if (!string.IsNullOrEmpty(admin.Password))
+                    {
+                        admin.Password = BCrypt.Net.BCrypt.HashPassword(admin.Password);
+                    }
+                    else
+                    {
+                        // Retain the old password if none is provided
+                        _context.Entry(admin).Property(a => a.Password).IsModified = false;
+                    }
+
+                    _context.Update(admin);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Admin ID {admin.Id} updated successfully.");
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!AdminExists(admin.Id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            return View(admin);
+        }
+
+        // GET: Admin/Delete/5
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (!IsAuthenticated())
+            {
+                return RedirectToAction("Login");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var admin = await _context.Admins
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (admin == null)
+            {
+                return NotFound();
+            }
+
+            return View(admin);
+        }
+
+        // POST: Admin/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            if (!IsAuthenticated())
+            {
+                return RedirectToAction("Login");
+            }
+
+            var admin = await _context.Admins.FindAsync(id);
+            if (admin != null)
+            {
+                _context.Admins.Remove(admin);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Admin ID {id} deleted successfully.");
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // GET: Admin/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (!IsAuthenticated())
+            {
+                return RedirectToAction("Login");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var admin = await _context.Admins
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (admin == null)
+            {
+                return NotFound();
+            }
+
+            return View(admin);
+        }
+
+        // Helper: Check if Admin is Authenticated
         private bool IsAuthenticated()
         {
             return HttpContext.Session.GetString("AdminLoggedIn") != null;
+        }
+
+        // Helper: Check if Admin Exists
+        private bool AdminExists(int id)
+        {
+            return _context.Admins.Any(e => e.Id == id);
         }
     }
 }

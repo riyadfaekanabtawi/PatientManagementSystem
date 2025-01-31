@@ -4,6 +4,11 @@
     ViewData["Title"] = "Historial de Ajustes - " + Model.Name;
 }
 
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+
 <h2 class="text-center my-4">Historial de Ajustes para @Model.Name</h2>
 
 @if (Model.AdjustmentHistory == null || !Model.AdjustmentHistory.Any())
