@@ -41,9 +41,17 @@ namespace PatientManagementSystem.Models
 
     public class FaceAdjustmentHistory
     {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-        public string AdjustedImageUrl { get; set; } = null!;
-        public DateTime AdjustmentDate { get; set; }
+            public int Id { get; set; }
+            public int PatientId { get; set; }
+
+            [Required]
+            public string AdjustedImageUrl { get; set; } = null!;
+
+            [Required]
+            public DateTime AdjustmentDate { get; set; } = DateTime.UtcNow;
+
+            public string? Notes { get; set; }
+
+            public Patient Patient { get; set; } = null!;
     }
 }

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-
+using BCrypt.Net;
 namespace PatientManagementSystem.Controllers
 {
     public class AdminController : Controller
@@ -36,7 +36,7 @@ namespace PatientManagementSystem.Controllers
         {
             var admin = _context.Admins.FirstOrDefault(a => a.Email == email);
 
-            if (admin != null)
+            if (admin != null && BCrypt.Net.BCrypt.Verify(password, admin.Password))
             {
                 HttpContext.Session.SetString("AdminLoggedIn", admin.Id.ToString());
 

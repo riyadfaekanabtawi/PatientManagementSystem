@@ -147,5 +147,65 @@ namespace PatientManagementSystem.Controllers
             await _context.SaveChangesAsync();
             return Json(new { success = true });
         }
+
+        [HttpPost]
+        public async Task<IActionResult> SaveFaceAdjustment(int id, [FromBody] FaceAdjustmentRequest request)
+        {
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null) return NotFound();
+
+            // Upload Snapshot to S3
+            var fileName = $"adjustments/{id}_{DateTime.UtcNow.Ticks}.png";
+            var s3Bucket = _configuration["AWS:BucketName"];
+
+            using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
+            {
+                var uploadRequest = new TransferUtilityUploadRequest
+                {
+                    InputStream = stream,
+                    BucketName = s3Bucket,
+                    Key = fileName,
+                    ContentType = "image/png",
+                    CannedACL = S3CannedACL.PublicRead
+                };
+
+                var transferUtility = new TransferUtility(_s3Client);
+                await transferUtility.UploadAsync(uploadRequest);
+            }
+
+            var snapshotUrl = $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
+
+            // Save FaceAdjustmentHistory
+            var history = new FaceAdjustmentHistory
+            {
+                PatientId = id,
+                AdjustedImageUrl = snapshotUrl,
+                Notes = request.Notes,
+                AdjustmentDate = DateTime.UtcNow
+            };
+
+            _context.FaceAdjustmentHistories.Add(history);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+        public class FaceAdjustmentRequest
+        {
+            public string Snapshot { get; set; } = string.Empty;
+            public string Notes { get; set; } = string.Empty;
+        }
+
+        public async Task<IActionResult> History(int id)
+        {
+            var patient = await _context.Patients
+                .Include(p => p.AdjustmentHistory)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (patient == null) return NotFound();
+
+            return View(patient);
+        }
+
     }
 }

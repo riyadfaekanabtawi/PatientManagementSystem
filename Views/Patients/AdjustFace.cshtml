@@ -18,7 +18,13 @@
         <label for="nose-slider">Nariz:</label>
         <input type="range" id="nose-slider" min="-10" max="10" step="1" />
     </div>
-    <button id="save-adjustments" class="btn btn-primary">Guardar Ajustes</button>
+
+    <div class="form-group">
+        <label for="notes">Notas:</label>
+        <textarea id="notes" class="form-control" rows="3" placeholder="Escribe tus notas aquí..."></textarea>
+    </div>
+
+    <button id="save-face-adjustment" class="btn btn-success">Guardar Ajustes</button>
 </div>
 
 @section Scripts {
@@ -26,117 +32,93 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const container = document.getElementById('threejs-container');
-            let model3DUrl = '@Model.Model3DUrl'.trim();
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const container = document.getElementById('threejs-container');
+        let model3DUrl = '@Model.Model3DUrl'.trim();
+        let patientId = @Model.Id; // Get patient ID
 
-            function load3DModel(url) {
-                container.innerHTML = ""; // Clear previous content
+        let renderer, scene, camera;
 
-                if (!url || url === 'null') {
-                    console.error("❌ Model3DUrl is missing or null");
-                    container.innerHTML = "<p style='color:red'>⚠️ Error: No 3D model found. Please generate one.</p>";
-                    return;
+        function init3DModel(url) {
+            container.innerHTML = ""; // Clear previous content
+
+            if (!url || url === 'null') {
+                container.innerHTML = "<p style='color:red'>⚠️ No 3D model found. Please generate one.</p>";
+                return;
+            }
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 3;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(10, 10, 10);
+            scene.add(light);
+
+            const loader = new THREE.GLTFLoader();
+            loader.load(url, function (gltf) {
+                const model = gltf.scene;
+                model.scale.set(1, 1, 1);
+                scene.add(model);
+
+                function animate() {
+                    requestAnimationFrame(animate);
+                    renderer.render(scene, camera);
                 }
-
-                console.log("📥 Loading 3D Model from:", url);
-
-                // Initialize Three.js scene
-                const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
-                camera.position.z = 3;
-
-                const renderer = new THREE.WebGLRenderer({ antialias: true });
-                renderer.setSize(container.offsetWidth, container.offsetHeight);
-                renderer.setPixelRatio(window.devicePixelRatio);
-                container.appendChild(renderer.domElement);
-
-                // Add lighting
-                const light = new THREE.DirectionalLight(0xffffff, 1);
-                light.position.set(10, 10, 10);
-                scene.add(light);
-
-                // Load 3D model from S3 using GLTFLoader
-                const loader = new THREE.GLTFLoader();
-                loader.load(url, function (gltf) {
-                    const model = gltf.scene;
-                    model.scale.set(1, 1, 1);
-                    scene.add(model);
-
-                    // Animation loop
-                    function animate() {
-                        requestAnimationFrame(animate);
-                        renderer.render(scene, camera);
-                    }
-                    animate();
-
-                    console.log("✅ 3D model loaded successfully.");
-                }, undefined, function (error) {
-                    console.error("❌ Error loading 3D model:", error);
-                    container.innerHTML = "<p style='color:red'>⚠️ Error loading 3D model.</p>";
-                });
-
-                // Resize handling
-                window.addEventListener('resize', () => {
-                    const width = container.clientWidth;
-                    const height = container.clientHeight;
-                    camera.aspect = width / height;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(width, height);
-                });
-            }
-
-            // Load existing 3D model if available
-            if (model3DUrl) {
-                load3DModel(model3DUrl);
-            }
-
-            // Handle Generate Model button click
-            document.getElementById('generate-model').addEventListener('click', function () {
-                fetch('/Patients/Generate3DModel/@Model.Id', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        model3DUrl = data.modelFileUrl;
-                        load3DModel(model3DUrl);
-                    } else {
-                        alert('⚠️ Error generating 3D model: ' + data.message);
-                    }
-                })
-                .catch(error => console.error('❌ Error:', error));
+                animate();
             });
 
-            // Save Adjustments
-            document.getElementById('save-adjustments').addEventListener('click', function () {
-                const adjustments = {
-                    cheeks: document.getElementById('cheeks-slider').value,
-                    chin: document.getElementById('chin-slider').value,
-                    nose: document.getElementById('nose-slider').value
-                };
-
-                fetch('/Patients/SaveAdjustments/@Model.Id', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(adjustments)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('✅ Adjustments saved successfully!');
-                    } else {
-                        alert('⚠️ Error saving adjustments.');
-                    }
-                })
-                .catch(error => console.error('❌ Error:', error));
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
             });
+        }
+
+        if (model3DUrl) {
+            init3DModel(model3DUrl);
+        }
+
+        function captureSnapshot() {
+            return new Promise((resolve) => {
+                renderer.render(scene, camera);
+                const imageUrl = renderer.domElement.toDataURL("image/png");
+                resolve(imageUrl);
+            });
+        }
+
+        document.getElementById('save-face-adjustment').addEventListener('click', async function () {
+            const notes = document.getElementById('notes').value.trim();
+            if (!notes) {
+                alert("⚠️ Por favor, ingresa notas antes de guardar.");
+                return;
+            }
+
+            const snapshot = await captureSnapshot();
+
+            fetch('/Patients/SaveFaceAdjustment/' + patientId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ snapshot, notes })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("✅ Ajustes guardados con éxito! Redirigiendo al historial...");
+                    window.location.href = "/Patients/History/" + patientId; // Redirect to history page
+                } else {
+                    alert("❌ Error al guardar los ajustes: " + data.message);
+                }
+            })
+            .catch(error => console.error('❌ Error:', error));
         });
-    </script>
+    });
+</script>
+
 }

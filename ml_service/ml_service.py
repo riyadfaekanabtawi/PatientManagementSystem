@@ -95,7 +95,7 @@ def generate_3d_face(front_img, left_img, right_img, back_img):
         traceback.print_exc()
         return None
 
-@app.route("/generate", methods=["POST"])
+@app.route("/flask-api/generate", methods=["POST"])
 def generate_3d_model():
     try:
         data = request.json

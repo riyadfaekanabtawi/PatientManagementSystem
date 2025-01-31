@@ -1,0 +1,42 @@
+@model PatientManagementSystem.Models.Patient
+
+@{
+    ViewData["Title"] = "Historial de Ajustes - " + Model.Name;
+}
+
+<h2 class="text-center my-4">Historial de Ajustes para @Model.Name</h2>
+
+@if (Model.AdjustmentHistory == null || !Model.AdjustmentHistory.Any())
+{
+    <div class="alert alert-warning text-center">No hay ajustes registrados para este paciente.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Imagen Ajustada</th>
+                    <th>Notas</th>
+                    <th>Fecha y Hora</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var adjustment in Model.AdjustmentHistory.OrderByDescending(h => h.AdjustmentDate))
+                {
+                    <tr>
+                        <td class="text-center">
+                            <img src="@adjustment.AdjustedImageUrl" alt="Ajuste" class="img-thumbnail" style="max-width: 150px;">
+                        </td>
+                        <td>@adjustment.Notes</td>
+                        <td>@adjustment.AdjustmentDate.ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<div class="text-center mt-4">
+    <a asp-action="Index" class="btn btn-secondary">Volver a la lista de pacientes</a>
+</div>

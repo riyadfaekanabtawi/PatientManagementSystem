@@ -47,9 +47,10 @@
                         <img src="@patient.BackImageUrl" alt="Back" class="img-fluid rounded-circle" style="width: 50px; height: 50px;" />
                     </td>
                     <td>
-                        <div class="d-flex gap-2">
+                       <div class="d-flex gap-2">
                             <a asp-controller="Patients" asp-action="AdjustFace" asp-route-id="@patient.Id" class="btn btn-warning btn-sm">Ajustar Rostro</a>
-                            <a asp-controller="Patients" asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-warning btn-sm">Editar</a>
+                            <a asp-controller="Patients" asp-action="History" asp-route-id="@patient.Id" class="btn btn-info btn-sm">Ver Historial</a>
+                            <a asp-controller="Patients" asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-primary btn-sm">Editar</a>
                             <a asp-controller="Patients" asp-action="Delete" asp-route-id="@patient.Id" class="btn btn-danger btn-sm">Eliminar</a>
                         </div>
                     </td>
