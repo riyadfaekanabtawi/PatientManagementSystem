@@ -45,32 +45,7 @@
     
     <div class="container">
         <main role="main" class="pb-3">
-            @if (string.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session?.GetString("AdminLoggedIn")))
-            {
-                <!-- ✅ Show Login Form if NOT Logged In -->
-                <div class="row justify-content-center">
-                    <div class="col-md-4">
-                        <div class="card shadow-sm p-4">
-                            <h3 class="text-center">Admin Login</h3>
-                            <form asp-controller="Admin" asp-action="Login" method="post">
-                                <div class="mb-3">
-                                    <label for="Email" class="form-label">Correo Electrónico</label>
-                                    <input type="email" name="Email" class="form-control" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="Password" class="form-label">Contraseña</label>
-                                    <input type="password" name="Password" class="form-control" required>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            }
-            else
-            {
-                @RenderBody()
-            }
+            @RenderBody()
         </main>
     </div>
 
