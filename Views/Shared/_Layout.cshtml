@@ -2,7 +2,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,52 +12,79 @@
 </head>
 <body>
 
-<p>Session Debug: @HttpContextAccessor.HttpContext.Session.GetString("AdminLoggedIn")</p>
-
-@if (!string.IsNullOrEmpty(HttpContextAccessor.HttpContext.Session.GetString("AdminLoggedIn")))
-{
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PatientManagementSystem</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Pacientes</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Appointments" asp-action="Index">Citas</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Index">Administradores</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Admin" asp-action="Logout">Cerrar Sesión</a>
-                        </li>
-                    </ul>
+    @if (!string.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session?.GetString("AdminLoggedIn")))
+    {
+        <!-- ✅ Navigation Bar (Only visible if logged in) -->
+        <header>
+            <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-3">
+                <div class="container">
+                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PatientManagementSystem</a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Pacientes</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Appointments" asp-action="Index">Citas</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Index">Administradores</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-danger" asp-controller="Admin" asp-action="Logout">Cerrar Sesión</a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-            </div>
-        </nav>
-    </header>
-}
-else
-{
-    <p>Admin is NOT logged in.</p>
-}
+            </nav>
+        </header>
+    }
+    
     <div class="container">
         <main role="main" class="pb-3">
-            @RenderBody()
+            @if (string.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session?.GetString("AdminLoggedIn")))
+            {
+                <!-- ✅ Show Login Form if NOT Logged In -->
+                <div class="row justify-content-center">
+                    <div class="col-md-4">
+                        <div class="card shadow-sm p-4">
+                            <h3 class="text-center">Admin Login</h3>
+                            <form asp-controller="Admin" asp-action="Login" method="post">
+                                <div class="mb-3">
+                                    <label for="Email" class="form-label">Correo Electrónico</label>
+                                    <input type="email" name="Email" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="Password" class="form-label">Contraseña</label>
+                                    <input type="password" name="Password" class="form-control" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @RenderBody()
+            }
         </main>
     </div>
+
     <footer class="border-top footer text-muted">
         <div class="container text-center py-3">
             &copy; 2025 - PatientManagementSystem
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ✅ Fix for 'Scripts' section error -->
+    @await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>

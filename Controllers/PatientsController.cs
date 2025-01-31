@@ -9,194 +9,143 @@ using Amazon.S3;
 using Amazon.S3.Transfer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using System.Diagnostics;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using PatientManagementSystem.Services;  // ✅ Import the service
+using System.Text.Json;  // ✅ Required for JSON Parsing
 
 namespace PatientManagementSystem.Controllers
 {
-    public class PatientsController : BaseController
+    public class PatientsController : Controller
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly I3DModelService _3DModelService;
+        private readonly IAmazonS3 _s3Client;
+        private readonly ILogger<PatientsController> _logger;
 
-        public PatientsController(AppDbContext context, IConfiguration configuration)
+        public PatientsController(AppDbContext context, IConfiguration configuration, I3DModelService modelService, IAmazonS3 s3Client, ILogger<PatientsController> logger)
         {
             _context = context;
             _configuration = configuration;
+            _3DModelService = modelService;
+            _s3Client = s3Client;
+            _logger = logger;
         }
 
-        [HttpGet("/test-session")]
-        public IActionResult TestSession()
-        {
-            HttpContext.Session.SetString("TestKey", "TestValue");
-            var value = HttpContext.Session.GetString("TestKey");
-            return Ok($"Session value: {value ?? "null"}");
-        }
-
-        // GET: Patients
         public async Task<IActionResult> Index()
         {
             var patients = await _context.Patients.ToListAsync();
             return View(patients);
         }
 
-        // GET: Patients/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (!id.HasValue)
-                return NotFound();
+            if (!id.HasValue) return NotFound();
 
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
-            if (patient == null)
-                return NotFound();
+            if (patient == null) return NotFound();
 
             return View(patient);
         }
 
-        // GET: Patients/Create
-        public IActionResult Create()
-        {
-            return View(new Patient
-            {
-                DateOfBirth = DateTime.Today // Default date to avoid validation issues
-            });
-        }
-
-        // POST: Patients/Create
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(
-            [Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient,
-            IFormFile? FrontImage,
-            IFormFile? LeftImage,
-            IFormFile? RightImage,
-            IFormFile? BackImage)
+        public async Task<IActionResult> Generate3DModel(int id)
         {
-            if (!ModelState.IsValid)
-                return View(patient);
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null) 
+            {
+                return Json(new { success = false, message = "Patient not found." });
+            }
+
+            _logger.LogInformation($"🚀 Generating 3D model for Patient ID: {id}");
+
+            if (string.IsNullOrEmpty(patient.FrontImageUrl) ||
+                string.IsNullOrEmpty(patient.LeftImageUrl) ||
+                string.IsNullOrEmpty(patient.RightImageUrl) ||
+                string.IsNullOrEmpty(patient.BackImageUrl))
+            {
+                _logger.LogError("❌ Missing patient images for 3D model generation.");
+                return Json(new { success = false, message = "Missing patient images." });
+            }
 
             try
             {
-                patient.FrontImageUrl = FrontImage != null ? await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}") : null;
-                patient.LeftImageUrl = LeftImage != null ? await UploadToS3Async(LeftImage, $"patients/{Guid.NewGuid()}_left.{LeftImage.ContentType.Split('/')[1]}") : null;
-                patient.RightImageUrl = RightImage != null ? await UploadToS3Async(RightImage, $"patients/{Guid.NewGuid()}_right.{RightImage.ContentType.Split('/')[1]}") : null;
-                patient.BackImageUrl = BackImage != null ? await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}") : null;
+                string apiResponse = await _3DModelService.GenerateModelAsync(
+                    patient.FrontImageUrl, 
+                    patient.LeftImageUrl, 
+                    patient.RightImageUrl, 
+                    patient.BackImageUrl
+                );
 
-                _context.Add(patient);
+                if (string.IsNullOrEmpty(apiResponse))
+                {
+                    _logger.LogError("❌ 3D Model generation service returned an empty response.");
+                    return Json(new { success = false, message = "3D Model generation service failed." });
+                }
+
+                _logger.LogInformation($"📩 API Response: {apiResponse}");
+
+                string modelFileUrl = null;
+
+                try
+                {
+                    // ✅ Try parsing as JSON first
+                    var modelResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(apiResponse);
+                    if (modelResponse != null && modelResponse.ContainsKey("modelFileUrl"))
+                    {
+                        modelFileUrl = modelResponse["modelFileUrl"];
+                    }
+                }
+                catch (JsonException)
+                {
+                    // ✅ If JSON parsing fails, assume it's a raw URL string
+                    _logger.LogWarning("⚠️ API response was not JSON. Assuming direct URL.");
+                    modelFileUrl = apiResponse.Trim();
+                }
+
+                if (string.IsNullOrEmpty(modelFileUrl))
+                {
+                    _logger.LogError("❌ No valid model URL found in API response.");
+                    return Json(new { success = false, message = "Invalid API response." });
+                }
+
+                // ✅ Save Model URL in Database
+                patient.Model3DUrl = modelFileUrl;
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+
+                _logger.LogInformation($"✅ 3D model successfully generated: {modelFileUrl}");
+                return Json(new { success = true, modelFileUrl });
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, $"An error occurred: {ex.Message}");
-                return View(patient);
+                _logger.LogError($"❌ Exception in 3D Model Generation: {ex.Message}");
+                return Json(new { success = false, message = "Error generating 3D model." });
             }
         }
 
-        // GET: Patients/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public IActionResult AdjustFace(int id)
         {
-            if (!id.HasValue)
-                return NotFound();
-
-            var patient = await _context.Patients.FindAsync(id);
+            var patient = _context.Patients.FirstOrDefault(p => p.Id == id);
             if (patient == null)
-                return NotFound();
+            {
+                return NotFound("Patient not found.");
+            }
 
             return View(patient);
         }
 
-        // POST: Patients/Edit/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(
-            int id,
-            [Bind("Id,Name,DateOfBirth,Email,Contact")] Patient patient,
-            IFormFile? FrontImage,
-            IFormFile? LeftImage,
-            IFormFile? RightImage,
-            IFormFile? BackImage)
-        {
-            if (id != patient.Id)
-                return NotFound();
-
-            if (!ModelState.IsValid)
-                return View(patient);
-
-            try
-            {
-                patient.FrontImageUrl = FrontImage != null ? await UploadToS3Async(FrontImage, $"patients/{Guid.NewGuid()}_front.{FrontImage.ContentType.Split('/')[1]}") : patient.FrontImageUrl;
-                patient.LeftImageUrl = LeftImage != null ? await UploadToS3Async(LeftImage, $"patients/{Guid.NewGuid()}_left.{LeftImage.ContentType.Split('/')[1]}") : patient.LeftImageUrl;
-                patient.RightImageUrl = RightImage != null ? await UploadToS3Async(RightImage, $"patients/{Guid.NewGuid()}_right.{RightImage.ContentType.Split('/')[1]}") : patient.RightImageUrl;
-                patient.BackImageUrl = BackImage != null ? await UploadToS3Async(BackImage, $"patients/{Guid.NewGuid()}_back.{BackImage.ContentType.Split('/')[1]}") : patient.BackImageUrl;
-
-                _context.Update(patient);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!PatientExists(patient.Id))
-                    return NotFound();
-
-                throw;
-            }
-        }
-
-        // GET: Patients/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (!id.HasValue)
-                return NotFound();
-
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
-            if (patient == null)
-                return NotFound();
-
-            return View(patient);
-        }
-
-        // POST: Patients/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> SaveAdjustments(int id, [FromBody] FaceAdjustmentModel adjustments)
         {
             var patient = await _context.Patients.FindAsync(id);
-            if (patient != null)
-                _context.Patients.Remove(patient);
+            if (patient == null) return NotFound();
+
+            patient.CheekAdjustment = adjustments.Cheeks;
+            patient.ChinAdjustment = adjustments.Chin;
+            patient.NoseAdjustment = adjustments.Nose;
 
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
-        private bool PatientExists(int id)
-        {
-            return _context.Patients.Any(p => p.Id == id);
-        }
-
-        private async Task<string> UploadToS3Async(IFormFile file, string fileName)
-        {
-            var s3Client = new AmazonS3Client(
-                _configuration["AWS:AccessKey"],
-                _configuration["AWS:SecretKey"],
-                Amazon.RegionEndpoint.GetBySystemName(_configuration["AWS:Region"])
-            );
-
-            using var transferUtility = new TransferUtility(s3Client);
-            using var stream = file.OpenReadStream();
-
-            var uploadRequest = new TransferUtilityUploadRequest
-            {
-                InputStream = stream,
-                BucketName = _configuration["AWS:BucketName"],
-                Key = fileName,
-                ContentType = file.ContentType,
-                CannedACL = S3CannedACL.PublicRead // Publicly accessible
-            };
-
-            await transferUtility.UploadAsync(uploadRequest);
-
-            return $"https://{_configuration["AWS:BucketName"]}.s3.{_configuration["AWS:Region"]}.amazonaws.com/{fileName}";
+            return Json(new { success = true });
         }
     }
 }
