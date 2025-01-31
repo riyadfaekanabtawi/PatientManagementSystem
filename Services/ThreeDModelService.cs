@@ -35,7 +35,7 @@ namespace PatientManagementSystem.Services
             {
                 _logger.LogInformation("🚀 Sending request to 3D Model API...");
 
-                var response = await _httpClient.PostAsync("http://localhost:5001/generate", content);
+                var response = await _httpClient.PostAsync("http://18.117.78.61/flask-api/generate", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
