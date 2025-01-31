@@ -17,14 +17,21 @@ namespace PatientManagementSystem.Controllers
             _context = context;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int? session_id)
         {
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
+            }
+
             var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
             var cookies = HttpContext.Request.Headers["Cookie"];
+
             _logger.LogInformation($"[DEBUG] Cookies Received: {cookies}");
             _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
 
-            if (sessionValue == null)
+            if (string.IsNullOrEmpty(sessionValue))
             {
                 return RedirectToAction("Login", "Admin");
             }
