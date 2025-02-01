@@ -28,18 +28,15 @@
                     </button>
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav ms-auto">
-                           @{
-                                var sessionId = Context.Session.GetString("session_id");
-                            }
-
+                        
                             <li class="nav-item">
-                                <a class="nav-link" href="/Patients?session_id=@sessionId">Pacientes</a>
+                                <a class="nav-link" href="/Patients?session_id=@sessionValue">Pacientes</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="/Appointments?session_id=@sessionId">Citas</a>
+                                <a class="nav-link" href="/Appointments?session_id=@sessionValue">Citas</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="/Admin?session_id=@sessionId">Administradores</a>
+                                <a class="nav-link" href="/Admin?session_id=@sessionValue">Administradores</a>
                             </li>
 
                             <li class="nav-item">
