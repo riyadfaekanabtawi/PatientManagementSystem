@@ -3,14 +3,15 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-
+using Microsoft.Extensions.Logging;
 public class ThreeDModelService : I3DModelService
 {
     private readonly HttpClient _httpClient;
-
-    public ThreeDModelService(HttpClient httpClient)
+    private readonly ILogger<ThreeDModelService> _logger;
+    public ThreeDModelService(HttpClient httpClient, ILogger<ThreeDModelService> logger)
     {
         _httpClient = httpClient;
+         _logger = logger;
     }
 
     public async Task<string> GenerateModelAsync(string frontImage, string leftImage, string rightImage, string backImage)
