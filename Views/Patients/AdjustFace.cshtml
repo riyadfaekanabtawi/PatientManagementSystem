@@ -38,6 +38,26 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <script>
+    document.getElementById('generate-model').addEventListener('click', function () {
+    let patientId = @Model.Id; // Ensure patient ID is available
+
+    fetch('/Patients/Generate3DModel/' + patientId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("✅ Modelo 3D generado con éxito!");
+            location.reload(); // Refresh to load new model
+        } else {
+            alert("❌ Error al generar el modelo: " + data.message);
+        }
+    })
+    .catch(error => console.error('❌ Error:', error));
+});
+
+
     document.addEventListener('DOMContentLoaded', function () {
         const container = document.getElementById('threejs-container');
         let model3DUrl = '@Model.Model3DUrl'.trim();
