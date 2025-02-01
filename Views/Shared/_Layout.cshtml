@@ -23,15 +23,20 @@
                     </button>
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav ms-auto">
+                           @{
+                                var sessionId = Context.Session.GetString("session_id");
+                            }
+
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Pacientes</a>
+                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index" asp-route-session_id="@sessionId">Pacientes</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Appointments" asp-action="Index">Citas</a>
+                                <a class="nav-link" asp-area="" asp-controller="Appointments" asp-action="Index" asp-route-session_id="@sessionId">Citas</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Index">Administradores</a>
+                                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Index" asp-route-session_id="@sessionId">Administradores</a>
                             </li>
+
                             <li class="nav-item">
                                 <a class="nav-link text-danger" asp-controller="Admin" asp-action="Logout">Cerrar Sesión</a>
                             </li>
