@@ -254,6 +254,11 @@ namespace PatientManagementSystem.Controllers
         // Helper: Check if Admin is Authenticated
         private bool IsAuthenticated()
         {
+             if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
+            }
             return HttpContext.Session.GetString("AdminLoggedIn") != null;
         }
 
