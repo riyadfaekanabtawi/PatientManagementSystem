@@ -69,6 +69,16 @@ namespace PatientManagementSystem.Controllers
             return View(admin);
         }
 
+        // GET: Admin/Login
+        public IActionResult Login()
+        {
+            if (HttpContext.Session.GetString("AdminLoggedIn") != null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+            return View();
+        }
+
         // POST: Admin/Login
         [HttpPost]
         public IActionResult Login(string email, string password)
@@ -90,6 +100,14 @@ namespace PatientManagementSystem.Controllers
 
             return View();
         }
+
+        // GET: Admin/Logout
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login");
+        }
+
 
         // GET: Admin/Edit/5
         public async Task<IActionResult> Edit(int? id)
