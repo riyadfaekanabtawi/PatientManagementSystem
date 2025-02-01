@@ -33,6 +33,11 @@ namespace PatientManagementSystem.Controllers
             return View(admins);
         }
 
+        public IActionResult Login()
+        {
+            return View();
+        }
+
         // GET: Admin/Create
         public IActionResult Create()
         {
