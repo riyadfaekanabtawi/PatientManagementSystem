@@ -20,8 +20,14 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Appointments
-        public async Task<IActionResult> Index(DateTime? date, int? patientId)
+        public async Task<IActionResult> Index(DateTime? date, int? patientId, int? session_id)
         {
+
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+            }
+
             var appointments = _context.Appointments.Include(a => a.Patient).AsQueryable();
 
             if (date.HasValue)
