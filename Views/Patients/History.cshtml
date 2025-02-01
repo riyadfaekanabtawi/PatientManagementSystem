@@ -1,12 +1,13 @@
 @model PatientManagementSystem.Models.Patient
 
 @{
-    ViewData["Title"] = "Historial de Ajustes - " + Model.Name;
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 @{
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Historial de Ajustes - " + Model.Name;
 }
+
 
 
 <h2 class="text-center my-4">Historial de Ajustes para @Model.Name</h2>
