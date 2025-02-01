@@ -22,9 +22,9 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Admin/Index
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? session_id)
         {
-            if (!IsAuthenticated())
+            if (!IsAuthenticated(session_id))
             {
                 return RedirectToAction("Login");
             }
@@ -37,10 +37,6 @@ namespace PatientManagementSystem.Controllers
         // GET: Admin/Create
         public IActionResult Create()
         {
-            if (!IsAuthenticated())
-            {
-                return RedirectToAction("Login");
-            }
 
             return View();
         }
@@ -50,11 +46,7 @@ namespace PatientManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Admin admin)
         {
-            if (!IsAuthenticated())
-            {
-                return RedirectToAction("Login");
-            }
-
+        
             if (ModelState.IsValid)
             {
                 // Hash the password before saving
@@ -72,10 +64,7 @@ namespace PatientManagementSystem.Controllers
         // GET: Admin/Login
         public IActionResult Login()
         {
-            if (HttpContext.Session.GetString("AdminLoggedIn") != null)
-            {
-                return RedirectToAction("Index", "Home");
-            }
+        
             return View();
         }
 
@@ -113,10 +102,7 @@ namespace PatientManagementSystem.Controllers
         // GET: Admin/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (!IsAuthenticated())
-            {
-                return RedirectToAction("Login");
-            }
+     
 
             if (id == null)
             {
@@ -137,11 +123,7 @@ namespace PatientManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Admin admin)
         {
-            if (!IsAuthenticated())
-            {
-                return RedirectToAction("Login");
-            }
-
+       
             if (id != admin.Id)
             {
                 return NotFound();
@@ -185,11 +167,7 @@ namespace PatientManagementSystem.Controllers
         // GET: Admin/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (!IsAuthenticated())
-            {
-                return RedirectToAction("Login");
-            }
-
+      
             if (id == null)
             {
                 return NotFound();
@@ -211,11 +189,7 @@ namespace PatientManagementSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (!IsAuthenticated())
-            {
-                return RedirectToAction("Login");
-            }
-
+        
             var admin = await _context.Admins.FindAsync(id);
             if (admin != null)
             {
@@ -230,11 +204,7 @@ namespace PatientManagementSystem.Controllers
         // GET: Admin/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (!IsAuthenticated())
-            {
-                return RedirectToAction("Login");
-            }
-
+           
             if (id == null)
             {
                 return NotFound();
@@ -252,9 +222,9 @@ namespace PatientManagementSystem.Controllers
         }
 
         // Helper: Check if Admin is Authenticated
-        private bool IsAuthenticated()
+        private bool IsAuthenticated(int? session_id)
         {
-             if (session_id.HasValue)
+            if (session_id.HasValue)
             {
                 HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
                 _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
