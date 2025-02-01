@@ -7,12 +7,12 @@ namespace PatientManagementSystem.Controllers
     {
         public override void OnActionExecuting(ActionExecutingContext context)
         {
-            // Check if the admin is logged in
-            if (HttpContext.Session.GetString("AdminLoggedIn") == null)
-            {
-                // Redirect to login if not logged in
-                context.Result = RedirectToAction("Login", "Admin");
-            }
+            // // Check if the admin is logged in
+            // if (HttpContext.Session.GetString("AdminLoggedIn") == null)
+            // {
+            //     // Redirect to login if not logged in
+            //     context.Result = RedirectToAction("Login", "Admin");
+            // }
 
             base.OnActionExecuting(context);
         }
