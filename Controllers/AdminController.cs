@@ -36,9 +36,13 @@ namespace PatientManagementSystem.Controllers
 
 
         // GET: Admin/Create
-        public IActionResult Create()
+        public IActionResult Create(int? session_id)
         {
-
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
+            }
             return View();
         }
 
@@ -101,9 +105,13 @@ namespace PatientManagementSystem.Controllers
 
 
         // GET: Admin/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int? id, int? session_id)
         {
-     
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
+            }
 
             if (id == null)
             {
@@ -166,9 +174,15 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Admin/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        public async Task<IActionResult> Delete(int? id, int? session_id)
         {
       
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
+            }
+            
             if (id == null)
             {
                 return NotFound();
@@ -203,9 +217,15 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Admin/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int? id, int? session_id)
         {
            
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
+            }
+
             if (id == null)
             {
                 return NotFound();
