@@ -27,22 +27,43 @@ public class ThreeDModelService : I3DModelService
 
         try
         {
+            _logger.LogInformation("🔄 Sending request to ML service...");
             var response = await _httpClient.PostAsync("http://18.117.78.61/flask-api/generate", content);
-            if (response.IsSuccessStatusCode)
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation($"📩 API Response (Raw): {responseData}");
+
+            if (!response.IsSuccessStatusCode)
             {
-                var responseData = await response.Content.ReadAsStringAsync();
-                var jsonResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(responseData);
-                return jsonResponse["modelFileUrl"];
+                _logger.LogError($"❌ API call failed. Status: {response.StatusCode}, Response: {responseData}");
+                return ""; // Return empty string to indicate failure
             }
-            else
+
+            try
             {
-                return null;
+                var jsonResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(responseData);
+
+                if (jsonResponse != null && jsonResponse.ContainsKey("modelFileUrl"))
+                {
+                    return jsonResponse["modelFileUrl"];
+                }
+                else
+                {
+                    _logger.LogError("❌ API response did not contain 'modelFileUrl'.");
+                    return "";
+                }
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError($"⚠️ Failed to parse API response as JSON. Exception: {ex.Message}");
+                return "";
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error calling ML service: " + ex.Message);
-            return null;
+            _logger.LogError($"❌ Exception calling ML service: {ex.Message}");
+            return "";
         }
     }
+
 }
