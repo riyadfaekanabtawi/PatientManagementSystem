@@ -1,5 +1,5 @@
 @model PatientManagementSystem.Models.Patient
-
+@inject IHttpContextAccessor HttpContextAccessor
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -7,7 +7,9 @@
 @{
     ViewData["Title"] = "Historial de Ajustes - " + Model.Name;
 }
-
+@{
+            var sessionValue = HttpContextAccessor.HttpContext?.Session?.GetString("AdminLoggedIn");
+            }   
 
 
 <h2 class="text-center my-4">Historial de Ajustes para @Model.Name</h2>
@@ -44,5 +46,5 @@ else
 }
 
 <div class="text-center mt-4">
-    <a asp-action="Index" class="btn btn-secondary">Volver a la lista de pacientes</a>
+    <a asp-action="Index" asp-route-session_id="@sessionValue" class="btn btn-secondary">Volver a la lista de pacientes</a>
 </div>
