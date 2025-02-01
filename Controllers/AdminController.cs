@@ -25,6 +25,11 @@ namespace PatientManagementSystem.Controllers
         public async Task<IActionResult> Index(int? session_id)
         {
 
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
+            }
             var admins = await _context.Admins.ToListAsync();
             return View(admins);
         }
