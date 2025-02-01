@@ -1,9 +1,14 @@
 @model PatientManagementSystem.Models.Patient
-
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
 @{
     ViewData["Title"] = "Edit";
 }
-
+@{
+            var sessionValue = HttpContextAccessor.HttpContext?.Session?.GetString("AdminLoggedIn");
+            } 
 <h1 class="mb-4">Editar Paciente</h1>
 
 <div class="row">
@@ -114,7 +119,7 @@
                 <!-- Submit and Back Buttons -->
                 <div class="d-flex justify-content-between">
                     <input type="submit" value="Guardar" class="btn btn-primary" />
-                    <a asp-action="Index" class="btn btn-secondary">Volver al Listado</a>
+                    <a asp-action="Index" asp-route-session_id="@sessionValue" class="btn btn-secondary"> Listado</a>
                 </div>
             </form>
         </div>
