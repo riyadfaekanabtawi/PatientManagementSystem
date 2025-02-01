@@ -1,49 +1,99 @@
-@model PatientManagementSystem.Models.Appointment
+@model PatientManagementSystem.Models.Patient
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Eliminar Paciente";
 }
 
-<h1>Delete Appointment</h1>
+<h1>Eliminar Paciente</h1>
 
 @if (Model == null)
 {
     <div class="alert alert-danger">
-        <p>Los detalles de la cita no estan disponible, regresa al listado.</p>
-        <a asp-action="Index" class="btn btn-primary">Back to List</a>
+        <p>Los detalles del paciente no están disponibles. Regresa al listado.</p>
+        <a asp-action="Index" class="btn btn-primary">Volver al Listado</a>
     </div>
 }
 else
 {
-    <h3>Esta seguro que quiere eliminar esta cita?</h3>
+    <h3>¿Está seguro de que desea eliminar este paciente?</h3>
     <div>
-        <h4>Detalles de la cita</h4>
+        <h4>Detalles del Paciente</h4>
         <hr />
         <dl class="row">
-            <dt class="col-sm-2">
-                Nombre Paciente
-            </dt>
-            <dd class="col-sm-10">
-                @Model.Patient?.Name
+            <dt class="col-sm-3">Nombre</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">Fecha de Nacimiento</dt>
+            <dd class="col-sm-9">@Model.DateOfBirth.ToShortDateString()</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Email</dd>
+
+            <dt class="col-sm-3">Contacto</dt>
+            <dd class="col-sm-9">@Model.Contact</dd>
+
+            <dt class="col-sm-3">Imagen de Frente</dt>
+            <dd class="col-sm-9">
+                @if (!string.IsNullOrEmpty(Model.FrontImageUrl))
+                {
+                    <img src="@Model.FrontImageUrl" alt="Imagen de Frente" width="150" />
+                }
+                else
+                {
+                    <span>No disponible</span>
+                }
             </dd>
-            <dt class="col-sm-2">
-                Fecha y Hora
-            </dt>
-            <dd class="col-sm-10">
-                @Model.AppointmentDateTime.ToString("f")
+
+            <dt class="col-sm-3">Imagen Izquierda</dt>
+            <dd class="col-sm-9">
+                @if (!string.IsNullOrEmpty(Model.LeftImageUrl))
+                {
+                    <img src="@Model.LeftImageUrl" alt="Imagen Izquierda" width="150" />
+                }
+                else
+                {
+                    <span>No disponible</span>
+                }
             </dd>
-            <dt class="col-sm-2">
-                Notas
-            </dt>
-            <dd class="col-sm-10">
-                @Model.Notes
+
+            <dt class="col-sm-3">Imagen Derecha</dt>
+            <dd class="col-sm-9">
+                @if (!string.IsNullOrEmpty(Model.RightImageUrl))
+                {
+                    <img src="@Model.RightImageUrl" alt="Imagen Derecha" width="150" />
+                }
+                else
+                {
+                    <span>No disponible</span>
+                }
+            </dd>
+
+            <dt class="col-sm-3">Imagen Trasera</dt>
+            <dd class="col-sm-9">
+                @if (!string.IsNullOrEmpty(Model.BackImageUrl))
+                {
+                    <img src="@Model.BackImageUrl" alt="Imagen Trasera" width="150" />
+                }
+                else
+                {
+                    <span>No disponible</span>
+                }
             </dd>
         </dl>
 
-        <form asp-action="Delete" method="post">
+       <form id="deleteForm" asp-action="DeleteConfirmed" method="post">
             <input type="hidden" asp-for="Id" />
-            <button type="submit" class="btn btn-danger">Eliminar</button>
+            <button type="button" class="btn btn-danger" onclick="confirmDelete()">Eliminar</button>
             <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
         </form>
+
+        <script>
+            function confirmDelete() {
+                if (confirm("¿Está seguro de eliminar este paciente?")) {
+                    document.getElementById("deleteForm").submit();
+                }
+            }
+        </script>
+
     </div>
 }
