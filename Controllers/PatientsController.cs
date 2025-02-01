@@ -32,15 +32,24 @@ namespace PatientManagementSystem.Controllers
             _logger = logger;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? session_id)
         {
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+            }
             var patients = await _context.Patients.ToListAsync();
             return View(patients);
         }
 
        // GET: Patients/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int? id, int? session_id)
         {
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+            }
+
             if (!id.HasValue) return NotFound();
 
             var patient = await _context.Patients
@@ -51,8 +60,12 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Patients/Create
-        public IActionResult Create()
+        public IActionResult Create(int? session_id)
         {
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+            }
             return View();
         }
 
@@ -71,8 +84,13 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Patients/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int? id, int? session_id)
         {
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+            }
+
             if (!id.HasValue) return NotFound();
 
             var patient = await _context.Patients.FindAsync(id);
@@ -112,8 +130,13 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Patients/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        public async Task<IActionResult> Delete(int? id, int? session_id)
         {
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+            }
+
             if (!id.HasValue) return NotFound();
 
             var patient = await _context.Patients
@@ -217,8 +240,12 @@ namespace PatientManagementSystem.Controllers
             }
         }
 
-        public IActionResult AdjustFace(int id)
+        public IActionResult AdjustFace(int id, int? session_id)
         {
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+            }
             var patient = _context.Patients.FirstOrDefault(p => p.Id == id);
             if (patient == null)
             {
@@ -290,8 +317,12 @@ namespace PatientManagementSystem.Controllers
             public string Notes { get; set; } = string.Empty;
         }
 
-        public async Task<IActionResult> History(int id)
+        public async Task<IActionResult> History(int id, int? session_id)
         {
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+            }
             var patient = await _context.Patients
                 .Include(p => p.AdjustmentHistory)
                 .FirstOrDefaultAsync(p => p.Id == id);

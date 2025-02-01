@@ -3,11 +3,13 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
+@{
+            var sessionValue = HttpContextAccessor.HttpContext?.Session?.GetString("AdminLoggedIn");
+            }   
 <h2>Administradores</h2>
 
 <div class="d-flex justify-content-between mb-3">
-    <a asp-action="Create" class="btn btn-success">Cargar Administrador Nuevo</a>
+    <a asp-action="Create" asp-route-session_id="@sessionValue" class="btn btn-success">Cargar Administrador Nuevo</a>
 </div>
 
 <table class="table table-striped table-hover">
@@ -27,9 +29,9 @@
                     <td>@admin.Name</td>
                     <td>@admin.Email</td>
                     <td>
-                        <a asp-action="Details" asp-route-id="@admin.Id" class="btn btn-info btn-sm">Detalles</a>
-                        <a asp-action="Edit" asp-route-id="@admin.Id" class="btn btn-warning btn-sm">Editar</a>
-                        <form asp-action="Delete" asp-route-id="@admin.Id" method="post" class="d-inline">
+                        <a asp-action="Details" asp-route-id="@admin.Id" asp-route-session_id="@sessionValue" class="btn btn-info btn-sm">Detalles</a>
+                        <a asp-action="Edit" asp-route-id="@admin.Id" asp-route-session_id="@sessionValue" class="btn btn-warning btn-sm">Editar</a>
+                        <form asp-action="Delete" asp-route-id="@admin.Id" asp-route-session_id="@sessionValue" method="post" class="d-inline">
                             <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
                         </form>
                     </td>
