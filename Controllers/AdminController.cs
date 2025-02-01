@@ -24,10 +24,6 @@ namespace PatientManagementSystem.Controllers
         // GET: Admin/Index
         public async Task<IActionResult> Index(int? session_id)
         {
-            if (!IsAuthenticated(session_id))
-            {
-                return RedirectToAction("Login");
-            }
 
             var admins = await _context.Admins.ToListAsync();
             return View(admins);
