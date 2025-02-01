@@ -24,7 +24,7 @@
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav ms-auto">
                            @{
-                                var sessionId = Context.Session.GetString("session_id");
+                                var sessionId = Request.Query["session_id"];
                             }
 
                             <li class="nav-item">
