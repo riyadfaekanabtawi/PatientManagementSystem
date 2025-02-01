@@ -33,10 +33,6 @@ namespace PatientManagementSystem.Controllers
             return View(admins);
         }
 
-        public IActionResult Login()
-        {
-            return View();
-        }
 
         // GET: Admin/Create
         public IActionResult Create()
@@ -71,6 +67,28 @@ namespace PatientManagementSystem.Controllers
                 return RedirectToAction(nameof(Index));
             }
             return View(admin);
+        }
+
+        // POST: Admin/Login
+        [HttpPost]
+        public IActionResult Login(string email, string password)
+        {
+            var admin = _context.Admins.FirstOrDefault(a => a.Email == email);
+
+            if (admin != null)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", admin.Id.ToString());
+
+                _logger.LogInformation($"AdminLoggedIn session set for Admin ID: {admin.Id}");
+                var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
+                 _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
+                return RedirectToAction("Index", "Home");
+            }
+
+            _logger.LogWarning($"Failed login attempt for email: {email}");
+            ViewBag.Error = "Correo o contraseña incorrectos.";
+
+            return View();
         }
 
         // GET: Admin/Edit/5
