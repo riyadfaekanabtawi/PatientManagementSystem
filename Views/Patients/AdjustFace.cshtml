@@ -68,8 +68,9 @@
         function init3DModel(url) {
             container.innerHTML = ""; // Clear previous content
 
+            // ❌ This call makes the function call itself infinitely, causing stack overflow
             if (model3DUrl && model3DUrl !== "null" && model3DUrl.trim() !== "") {
-                init3DModel(model3DUrl);
+                init3DModel(model3DUrl); 
             } else {
                 container.innerHTML = "<p style='color:red'>⚠️ No 3D model found. Please generate one.</p>";
             }
