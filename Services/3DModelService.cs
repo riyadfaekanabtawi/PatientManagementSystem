@@ -29,7 +29,7 @@ public class ThreeDModelService : I3DModelService
         try
         {
             _logger.LogInformation("🔄 Sending request to ML service...");
-            var response = await _httpClient.PostAsync("http://18.117.78.61/flask-api/generate", content);
+            var response = await _httpClient.PostAsync("http://127.0.0.1:5001/flask-api/generate", content);
 
             var responseData = await response.Content.ReadAsStringAsync();
             _logger.LogInformation($"📩 API Response (Raw): {responseData}");
