@@ -68,11 +68,9 @@
         function init3DModel(url) {
             container.innerHTML = ""; // Clear previous content
 
-            // ❌ This call makes the function call itself infinitely, causing stack overflow
-            if (model3DUrl && model3DUrl !== "null" && model3DUrl.trim() !== "") {
-                init3DModel(model3DUrl); 
-            } else {
+            if (!url || url === "null" || url.trim() === "") {
                 container.innerHTML = "<p style='color:red'>⚠️ No 3D model found. Please generate one.</p>";
+                return; // Stop execution if there's no model URL
             }
 
             scene = new THREE.Scene();
@@ -108,9 +106,11 @@
             });
         }
 
+        // ✅ Call the function once when the page loads
         if (model3DUrl) {
             init3DModel(model3DUrl);
         }
+
 
         function captureSnapshot() {
             return new Promise((resolve, reject) => {
