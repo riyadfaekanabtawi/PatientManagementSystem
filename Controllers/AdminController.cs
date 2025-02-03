@@ -61,6 +61,7 @@ namespace PatientManagementSystem.Controllers
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation($"New admin created with email: {admin.Email}");
+                TempData["Message"] = "Administrador creado corrrectamente";
                 return RedirectToAction(nameof(Index));
             }
             return View(admin);
@@ -86,11 +87,13 @@ namespace PatientManagementSystem.Controllers
                 _logger.LogInformation($"AdminLoggedIn session set for Admin ID: {admin.Id}");
                 var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
                  _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
+                 TempData["Message"] = "Bienvenido";
                 return RedirectToAction("Index", "Home", new { session_id = admin.Id });
 
             }
 
             _logger.LogWarning($"Failed login attempt for email: {email}");
+            TempData["Message"] = "Correo o contraseña incorrectos.";
             ViewBag.Error = "Correo o contraseña incorrectos.";
 
             return View();
@@ -212,7 +215,7 @@ namespace PatientManagementSystem.Controllers
                 await _context.SaveChangesAsync();
                 _logger.LogInformation($"Admin ID {id} deleted successfully.");
             }
-
+            TempData["Message"] = "Administrador eliminado correctamente";
             return RedirectToAction(nameof(Index));
         }
 
@@ -247,7 +250,7 @@ namespace PatientManagementSystem.Controllers
         {
             if (session_id.HasValue)
             {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+                HttpContext.Session.SetString("AdminLoggedIn", session _id.Value.ToString());
                 _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
             }
             return HttpContext.Session.GetString("AdminLoggedIn") != null;

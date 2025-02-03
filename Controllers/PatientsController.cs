@@ -86,7 +86,7 @@ namespace PatientManagementSystem.Controllers
                     // Save patient to database
                     _context.Add(patient);
                     await _context.SaveChangesAsync();
-                    
+                    TempData["Message"] = "Paciente cargado correctamente";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -183,7 +183,7 @@ namespace PatientManagementSystem.Controllers
 
                     _context.Update(existingPatient);
                     await _context.SaveChangesAsync();
-                    
+                    TempData["Message"] = "Paciente actualizado correctamente";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
@@ -236,6 +236,7 @@ namespace PatientManagementSystem.Controllers
             await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Patient {id} deleted successfully.");
+            TempData["Message"] = "Paciente eliminado correctamente";
             return RedirectToAction(nameof(Index));
         }
 

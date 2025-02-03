@@ -9,6 +9,7 @@
     <title>@ViewData["Title"] - PatientManagementSystem</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/custom.css">
 </head>
 <body>
 
@@ -66,6 +67,32 @@
 
     <!-- ✅ Fix for 'Scripts' section error -->
     @await RenderSectionAsync("Scripts", required: false)
+
+
+<script src="~/js/toastr.css"></script>
+
+@if (TempData["Message"] != null)
+{
+   
+<script>
+    $(function () {
+    "use strict";
+    //TOASTR NOTIFICATION
+    // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    toastr.options = {
+    "progressBar": true,
+    "positionClass": "toast-bottom-right",
+    "timeOut": 3500,
+    "showEasing": "swing",
+    "hideEasing": "linear",
+    "showMethod": "slideDown",
+    "hideMethod": "fadeOut"
+    };
+    
+        toastr.info('<h5 style="margin-top: 0px; margin-bottom: 5px;color:#fd7e14;font-size:22px;"><b>@TempData["Message"]</b></h5>');
+    });
+</script>
+}
 
 </body>
 </html>
