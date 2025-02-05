@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PatientManagementSystem.Data;
 using PatientManagementSystem.Models;
+using Amazon;
 using Amazon.S3;
 using Amazon.S3.Transfer;
 using Microsoft.AspNetCore.Http;
@@ -99,7 +100,7 @@ namespace PatientManagementSystem.Controllers
             return View(patient);
         }
 
-       private async Task<string> UploadFileToS3(IFormFile file)
+        private async Task<string> UploadFileToS3(IFormFile file)
         {
             if (file == null || file.Length == 0) return null;
 
@@ -108,6 +109,7 @@ namespace PatientManagementSystem.Controllers
             var awsRegion = _configuration["AWS:Region"];
             var s3Bucket = _configuration["AWS:BucketName"];
 
+            // Use RegionEndpoint from Amazon SDK
             var s3Client = new AmazonS3Client(awsAccessKey, awsSecretKey, RegionEndpoint.GetBySystemName(awsRegion));
 
             var fileName = $"patients/{Guid.NewGuid()}_{file.FileName}";
@@ -129,7 +131,6 @@ namespace PatientManagementSystem.Controllers
 
             return $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
         }
-
 
 
         // GET: Patients/Edit/5
