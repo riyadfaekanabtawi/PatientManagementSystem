@@ -99,12 +99,18 @@ namespace PatientManagementSystem.Controllers
             return View(patient);
         }
 
-        private async Task<string> UploadFileToS3(IFormFile file)
+       private async Task<string> UploadFileToS3(IFormFile file)
         {
             if (file == null || file.Length == 0) return null;
 
-            var fileName = $"patients/{Guid.NewGuid()}_{file.FileName}";
+            var awsAccessKey = _configuration["AWS:AccessKey"];
+            var awsSecretKey = _configuration["AWS:SecretKey"];
+            var awsRegion = _configuration["AWS:Region"];
             var s3Bucket = _configuration["AWS:BucketName"];
+
+            var s3Client = new AmazonS3Client(awsAccessKey, awsSecretKey, RegionEndpoint.GetBySystemName(awsRegion));
+
+            var fileName = $"patients/{Guid.NewGuid()}_{file.FileName}";
 
             using (var stream = file.OpenReadStream())
             {
@@ -117,12 +123,13 @@ namespace PatientManagementSystem.Controllers
                     CannedACL = S3CannedACL.PublicRead
                 };
 
-                var transferUtility = new TransferUtility(_s3Client);
+                var transferUtility = new TransferUtility(s3Client);
                 await transferUtility.UploadAsync(uploadRequest);
             }
 
             return $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
         }
+
 
 
         // GET: Patients/Edit/5
