@@ -254,78 +254,66 @@ namespace PatientManagementSystem.Controllers
             return _context.Patients.Any(e => e.Id == id);
         }
 
+         // POST: /Patients/Generate3DModel/{id}
         [HttpPost]
+        [Route("Patients/Generate3DModel/{id}")]
         public async Task<IActionResult> Generate3DModel(int id)
         {
+            // Retrieve the patient record from the database.
             var patient = await _context.Patients.FindAsync(id);
-            if (patient == null) 
+            if (patient == null)
             {
-                return Json(new { success = false, message = "Patient not found." });
+                return NotFound(new { success = false, message = "Patient not found." });
             }
 
-            _logger.LogInformation($"🚀 Generating 3D model for Patient ID: {id}");
-
-            if (string.IsNullOrEmpty(patient.FrontImageUrl) ||
-                string.IsNullOrEmpty(patient.LeftImageUrl) ||
-                string.IsNullOrEmpty(patient.RightImageUrl) ||
-                string.IsNullOrEmpty(patient.BackImageUrl))
+            // Make sure the patient record contains the front image file path.
+            // (Assume patient.FrontImagePath stores the absolute path to the image file.)
+            if (string.IsNullOrEmpty(patient.FrontImagePath) || !System.IO.File.Exists(patient.FrontImagePath))
             {
-                _logger.LogError("❌ Missing patient images for 3D model generation.");
-                return Json(new { success = false, message = "Missing patient images." });
+                return BadRequest(new { success = false, message = "No front image available for this patient." });
             }
 
             try
             {
-                string apiResponse = await _3DModelService.GenerateModelAsync(
-                    patient.FrontImageUrl, 
-                    patient.LeftImageUrl, 
-                    patient.RightImageUrl, 
-                    patient.BackImageUrl
-                );
+                // Open the front image file.
+                using var stream = System.IO.File.OpenRead(patient.FrontImagePath);
+                using var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(stream);
+                // Set an appropriate content type (adjust if your image is PNG, etc.)
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+                // Add the file content with the key "front" (which your Python code expects)
+                content.Add(fileContent, "front", "front_image.jpg");
 
-                if (string.IsNullOrEmpty(apiResponse))
+                _logger.LogInformation("🔄 Sending request to ML service...");
+                // POST the multipart form data to your Python Flask endpoint.
+                var response = await _httpClient.PostAsync("http://127.0.0.1:5001/flask-api/generate", content);
+                var responseData = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation($"📩 API Response (Raw): {responseData}");
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("❌ 3D Model generation service returned an empty response.");
-                    return Json(new { success = false, message = "3D Model generation service failed." });
+                    _logger.LogError($"❌ API call failed. Status: {response.StatusCode}, Response: {responseData}");
+                    return BadRequest(new { success = false, message = responseData });
                 }
 
-                _logger.LogInformation($"📩 API Response: {apiResponse}");
-
-                string modelFileUrl = null;
-
-                try
+                // The ML service returns JSON with the key "mesh_file_url"
+                var jsonResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(responseData);
+                if (jsonResponse != null && jsonResponse.ContainsKey("mesh_file_url"))
                 {
-                    // ✅ Try parsing as JSON first
-                    var modelResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(apiResponse);
-                    if (modelResponse != null && modelResponse.ContainsKey("modelFileUrl"))
-                    {
-                        modelFileUrl = modelResponse["modelFileUrl"];
-                    }
+                    patient.Model3DUrl = jsonResponse["mesh_file_url"];
+                    await _context.SaveChangesAsync();
+                    return Json(new { success = true });
                 }
-                catch (JsonException)
+                else
                 {
-                    // ✅ If JSON parsing fails, assume it's a raw URL string
-                    _logger.LogWarning("⚠️ API response was not JSON. Assuming direct URL.");
-                    modelFileUrl = apiResponse.Trim();
+                    _logger.LogError("❌ API response did not contain 'mesh_file_url'.");
+                    return BadRequest(new { success = false, message = "Invalid response from ML service." });
                 }
-
-                if (string.IsNullOrEmpty(modelFileUrl))
-                {
-                    _logger.LogError("❌ No valid model URL found in API response.");
-                    return Json(new { success = false, message = "Invalid API response." });
-                }
-
-                // ✅ Save Model URL in Database
-                patient.Model3DUrl = modelFileUrl;
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"✅ 3D model successfully generated: {modelFileUrl}");
-                return Json(new { success = true, modelFileUrl });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"❌ Exception in 3D Model Generation: {ex.Message}");
-                return Json(new { success = false, message = "Error generating 3D model." });
+                _logger.LogError($"❌ Exception calling ML service: {ex.Message}");
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
 
