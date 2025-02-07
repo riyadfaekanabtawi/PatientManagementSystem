@@ -33,7 +33,7 @@ import boto3
 # Configure logging.
 import logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,  # Set to INFO; you can change to DEBUG for more details.
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("ml_deca")
@@ -91,45 +91,31 @@ except Exception as e:
     sys.exit(1)
 
 # -------------------------------------------------------------------
-# Patch the forward method of the encoder (deca.E_flame) to fix the feature shape.
+# Patch the first linear layer in deca.E_flame.layers.
+# The error indicates that the input to the linear layer has size 8192
+# when it should have size 2048. We assume that the first layer is a nn.Linear.
 try:
-    def new_forward(self, x):
-        # Log available attributes for debugging.
-        logger.debug("Inside new_forward. Available attributes of E_flame: %s", dir(self))
-        
-        # Try known attributes to extract convolutional features.
-        if hasattr(self, "encoder"):
-            features = self.encoder(x)
-            logger.debug("Using 'encoder' for feature extraction. features.shape = %s", features.shape)
-        elif hasattr(self, "base"):
-            features = self.base(x)
-            logger.debug("Using 'base' for feature extraction. features.shape = %s", features.shape)
-        elif hasattr(self, "conv"):
-            features = self.conv(x)
-            logger.debug("Using 'conv' for feature extraction. features.shape = %s", features.shape)
-        else:
-            raise AttributeError("No known feature extraction attribute found in E_flame.")
+    import torch.nn as nn
+    layers = deca.E_flame.layers  # Usually an nn.Sequential.
+    if isinstance(layers, nn.Sequential) and len(layers) > 0 and isinstance(layers[0], nn.Linear):
+        original_linear_forward = layers[0].forward
 
-        # If the feature map is 4D and has spatial dimensions 2x2, pool it to 1x1.
-        if features.dim() == 4:
-            H, W = features.size(2), features.size(3)
-            if H == 2 and W == 2:
-                logger.debug("Feature map shape before pooling: %s", features.shape)
-                features = F.adaptive_avg_pool2d(features, (1, 1))
-                logger.debug("Feature map shape after pooling: %s", features.shape)
-        else:
-            logger.debug("Features are not 4D; shape = %s", features.shape)
-            
-        # Flatten features.
-        features = features.view(features.size(0), -1)
-        logger.debug("Flattened features shape: %s", features.shape)
-        return self.layers(features)
-    
-    # Override the forward method of deca.E_flame.
-    deca.E_flame.forward = new_forward.__get__(deca.E_flame, deca.E_flame.__class__)
-    logger.info("Successfully patched deca.E_flame.forward with new_forward.")
+        def patched_linear_forward(self, x):
+            # If x is a 2D tensor with 8192 features, reshape it.
+            if x.dim() == 2 and x.size(1) == 8192:
+                B = x.size(0)
+                logger.info("Patched linear layer: reshaping input from 8192 to 2048 features.")
+                # Reshape to [B, 2048, 2, 2] then average pool over spatial dimensions.
+                x = x.view(B, 2048, 2, 2).mean(dim=(2, 3))
+            return original_linear_forward(x)
+
+        # Bind the new forward method to the first linear layer.
+        layers[0].forward = patched_linear_forward.__get__(layers[0], type(layers[0]))
+        logger.info("Patched the first linear layer in deca.E_flame.layers.")
+    else:
+        logger.warning("deca.E_flame.layers is not a Sequential with a Linear as the first module; no patch applied.")
 except Exception as e:
-    logger.error("Error patching deca.E_flame.forward: %s", e)
+    logger.error("Error patching the first linear layer: %s", e)
     traceback.print_exc()
 
 # -------------------------------------------------------------------
@@ -143,12 +129,12 @@ def process_image(image_path):
             raise ValueError("Invalid image format or corrupted file")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
-        # Convert to tensor [1, 3, H, W] and normalize.
+        # Convert to tensor of shape [1, 3, H, W] and normalize.
         image_tensor = torch.tensor(image).permute(2, 0, 1).unsqueeze(0).float() / 255.0
         image_tensor = image_tensor.to(device)
         logger.info("Image loaded and preprocessed successfully. Original shape: %s", image_tensor.shape)
 
-        # If the image is not square, perform a center crop.
+        # Center crop if necessary.
         _, _, h, w = image_tensor.shape
         if h != w:
             min_dim = min(h, w)
@@ -157,7 +143,7 @@ def process_image(image_path):
             image_tensor = image_tensor[:, :, top:top+min_dim, left:left+min_dim]
             logger.info("Image center-cropped to square. New shape: %s", image_tensor.shape)
 
-        # Resize the image (try 256x256; if problems persist, you might experiment with 224x224).
+        # Resize the image.
         image_tensor = torch.nn.functional.interpolate(
             image_tensor, size=(256, 256), mode="bilinear", align_corners=False
         )
@@ -205,7 +191,7 @@ def generate_3d_face():
         if not front_img:
             return jsonify({"error": "Front image is required"}), 400
 
-        # Save the uploaded front image locally.
+        # Save the uploaded image.
         front_img_path = os.path.join(UPLOAD_FOLDER, "front_image.jpg")
         front_img.save(front_img_path)
         logger.info("Front image saved to %s", front_img_path)
