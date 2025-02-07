@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import sys
-import inspect
 import traceback
 
 # -------------------------------------------------------------------
@@ -14,21 +13,16 @@ sys.path.append(os.path.abspath("/home/ubuntu/PatientManagementSystem/DECA"))
 # -------------------------------------------------------------------
 
 import cv2
-import numpy as np
 import torch
 import torch.nn.functional as F
 
 # -------------------------------------------------------------------
-# Monkey-patch torch.load so that all tensors load on the CPU.
+# Monkey-patch torch.load so that tensors load on the CPU.
 original_torch_load = torch.load
-
-
 def cpu_torch_load(*args, **kwargs):
     if "map_location" not in kwargs:
         kwargs["map_location"] = torch.device("cpu")
     return original_torch_load(*args, **kwargs)
-
-
 torch.load = cpu_torch_load
 # -------------------------------------------------------------------
 
@@ -38,7 +32,6 @@ import boto3
 # -------------------------------------------------------------------
 # Configure logging.
 import logging
-
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -48,7 +41,7 @@ logger = logging.getLogger("ml_deca")
 
 app = Flask(__name__)
 
-# AWS S3 Configurations (for production, secure these keys via environment variables)
+# AWS S3 Configurations (for production, secure these via environment variables)
 AWS_ACCESS_KEY = "AKIAUP7RI5QI6QH64G6C"
 AWS_SECRET_KEY = "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"
 AWS_BUCKET_NAME = "patients-tree"
@@ -98,34 +91,45 @@ except Exception as e:
     sys.exit(1)
 
 # -------------------------------------------------------------------
-# Patch the encoder’s layers to adapt to a larger flattened feature vector.
-# If the encoder produces features of size 8192 (i.e. 2048 channels x 2 x 2),
-# we reshape and average-pool them to get a 2048 vector.
+# Patch the forward method of the encoder (deca.E_flame) to fix the feature shape.
 try:
-    import torch.nn as nn
+    def new_forward(self, x):
+        # Log available attributes for debugging.
+        logger.debug("Inside new_forward. Available attributes of E_flame: %s", dir(self))
+        
+        # Try known attributes to extract convolutional features.
+        if hasattr(self, "encoder"):
+            features = self.encoder(x)
+            logger.debug("Using 'encoder' for feature extraction. features.shape = %s", features.shape)
+        elif hasattr(self, "base"):
+            features = self.base(x)
+            logger.debug("Using 'base' for feature extraction. features.shape = %s", features.shape)
+        elif hasattr(self, "conv"):
+            features = self.conv(x)
+            logger.debug("Using 'conv' for feature extraction. features.shape = %s", features.shape)
+        else:
+            raise AttributeError("No known feature extraction attribute found in E_flame.")
 
-    # Save the original layers module.
-    old_layers = deca.E_flame.layers
-
-    class PoolingLayers(nn.Module):
-        def __init__(self, old_layers):
-            super(PoolingLayers, self).__init__()
-            self.old_layers = old_layers
-
-        def forward(self, x):
-            # If the input is 8192 in length, assume it's [B, 2048*2*2].
-            if x.dim() == 2 and x.size(1) == 8192:
-                B = x.size(0)
-                # Reshape to [B, 2048, 2, 2] then average pool spatially.
-                x = x.view(B, 2048, 2, 2).mean(dim=(2, 3))
-                logger.debug("PoolingLayers: Reshaped input from 8192 to 2048 features.")
-            return self.old_layers(x)
-
-    # Replace the layers module with our wrapped version.
-    deca.E_flame.layers = PoolingLayers(old_layers)
-    logger.info("Patched deca.E_flame.layers to adapt 8192 features to 2048 via pooling.")
+        # If the feature map is 4D and has spatial dimensions 2x2, pool it to 1x1.
+        if features.dim() == 4:
+            H, W = features.size(2), features.size(3)
+            if H == 2 and W == 2:
+                logger.debug("Feature map shape before pooling: %s", features.shape)
+                features = F.adaptive_avg_pool2d(features, (1, 1))
+                logger.debug("Feature map shape after pooling: %s", features.shape)
+        else:
+            logger.debug("Features are not 4D; shape = %s", features.shape)
+            
+        # Flatten features.
+        features = features.view(features.size(0), -1)
+        logger.debug("Flattened features shape: %s", features.shape)
+        return self.layers(features)
+    
+    # Override the forward method of deca.E_flame.
+    deca.E_flame.forward = new_forward.__get__(deca.E_flame, deca.E_flame.__class__)
+    logger.info("Successfully patched deca.E_flame.forward with new_forward.")
 except Exception as e:
-    logger.error("Error patching deca.E_flame.layers: %s", e)
+    logger.error("Error patching deca.E_flame.forward: %s", e)
     traceback.print_exc()
 
 # -------------------------------------------------------------------
@@ -133,13 +137,13 @@ except Exception as e:
 def process_image(image_path):
     logger.info("Step 3: Loading and processing the image from %s", image_path)
     try:
-        # Load and preprocess the image.
+        # Load the image.
         image = cv2.imread(image_path)
         if image is None:
             raise ValueError("Invalid image format or corrupted file")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
-        # Convert the image to a tensor of shape [1, 3, H, W] and normalize.
+        # Convert to tensor [1, 3, H, W] and normalize.
         image_tensor = torch.tensor(image).permute(2, 0, 1).unsqueeze(0).float() / 255.0
         image_tensor = image_tensor.to(device)
         logger.info("Image loaded and preprocessed successfully. Original shape: %s", image_tensor.shape)
@@ -153,8 +157,7 @@ def process_image(image_path):
             image_tensor = image_tensor[:, :, top:top+min_dim, left:left+min_dim]
             logger.info("Image center-cropped to square. New shape: %s", image_tensor.shape)
 
-        # Resize the image tensor.
-        # NOTE: You might try different resolutions. In some DECA examples, 224x224 is used.
+        # Resize the image (try 256x256; if problems persist, you might experiment with 224x224).
         image_tensor = torch.nn.functional.interpolate(
             image_tensor, size=(256, 256), mode="bilinear", align_corners=False
         )
@@ -167,7 +170,7 @@ def process_image(image_path):
             opdict = deca.decode(codedict)
         logger.info("3D face model generated successfully.")
 
-        # Save the generated 3D model as an OBJ file.
+        # Save the 3D model as an OBJ file.
         mesh_path = os.path.join(UPLOAD_FOLDER, "3d_face.obj")
         deca.save_obj(mesh_path, opdict)
         logger.info("Step 5: 3D model saved to %s", mesh_path)
@@ -226,7 +229,7 @@ def generate_3d_face():
         return jsonify({"error": str(e)}), 500
 
 # -------------------------------------------------------------------
-# Main entry point for the Flask service.
+# Main entry point.
 if __name__ == "__main__":
     try:
         logger.info("Step 0: Starting the Flask server on 0.0.0.0:5001")
