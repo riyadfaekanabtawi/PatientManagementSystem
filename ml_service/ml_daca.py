@@ -2,9 +2,12 @@
 import os
 import sys
 import traceback
-
 import logging
-import os
+import boto3
+from flask import Flask, request, jsonify
+import cv2
+import torch
+import torch.nn.functional as F
 
 # Define log file path
 LOG_FILE_PATH = os.path.join(os.getcwd(), "ml_deca_error.log")
@@ -21,21 +24,13 @@ logging.basicConfig(
 
 logger = logging.getLogger("ml_deca")
 
-
-# -------------------------------------------------------------------
 # Force CPU usage and disable CUDA caching.
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
 
 # Add the DECA directory to the Python path.
 sys.path.append(os.path.abspath("/home/ubuntu/PatientManagementSystem/DECA"))
-# -------------------------------------------------------------------
 
-import cv2
-import torch
-import torch.nn.functional as F
-
-# -------------------------------------------------------------------
 # Monkey-patch torch.load so that tensors load on the CPU.
 original_torch_load = torch.load
 def cpu_torch_load(*args, **kwargs):
@@ -43,22 +38,6 @@ def cpu_torch_load(*args, **kwargs):
         kwargs["map_location"] = torch.device("cpu")
     return original_torch_load(*args, **kwargs)
 torch.load = cpu_torch_load
-# -------------------------------------------------------------------
-
-from flask import Flask, request, jsonify
-import boto3
-
-# -------------------------------------------------------------------
-# Configure logging.
-import logging
-logging.basicConfig(
-    level=logging.INFO,  # Change to DEBUG for more detailed logs.
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-logger = logging.getLogger("ml_deca")
-# -------------------------------------------------------------------
-
-app = Flask(__name__)
 
 # AWS S3 Configurations (for production, secure these via environment variables)
 AWS_ACCESS_KEY = "AKIAUP7RI5QI6QH64G6C"
@@ -89,12 +68,10 @@ UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 logger.info("Uploads folder: %s", UPLOAD_FOLDER)
 
-# -------------------------------------------------------------------
 # Import DECA model and configuration.
 from decalib.deca import DECA
 from decalib.utils.config import cfg as deca_cfg
 
-# -------------------------------------------------------------------
 # Initialize DECA.
 try:
     logger.info("Step 1: Loading DECA model...")
@@ -109,49 +86,6 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-# -------------------------------------------------------------------
-# Override the forward method of the encoder (E_flame) at the class level.
-# This new forward method extracts convolutional features using a candidate attribute,
-# applies adaptive pooling if the spatial dimensions are greater than 1x1, flattens,
-# and then feeds the result to the fully connected layers.
-try:
-    def new_forward(self, x):
-        # Try known attributes for feature extraction.
-        if hasattr(self, "encoder"):
-            features = self.encoder(x)
-            logger.info("Using attribute 'encoder' for feature extraction; features.shape = %s", features.shape)
-        elif hasattr(self, "base"):
-            features = self.base(x)
-            logger.info("Using attribute 'base' for feature extraction; features.shape = %s", features.shape)
-        elif hasattr(self, "conv"):
-            features = self.conv(x)
-            logger.info("Using attribute 'conv' for feature extraction; features.shape = %s", features.shape)
-        else:
-            raise AttributeError("No known convolutional attribute found in E_flame.")
-
-        # If features are 4D and the spatial dimensions are not 1x1, pool them.
-        if features.dim() == 4:
-            H, W = features.size(2), features.size(3)
-            if H != 1 or W != 1:
-                logger.info("Before pooling, features.shape = %s", features.shape)
-                features = F.adaptive_avg_pool2d(features, (1, 1))
-                logger.info("After pooling, features.shape = %s", features.shape)
-        else:
-            logger.info("Features are not 4D; features.shape = %s", features.shape)
-            
-        # Flatten the features.
-        features = features.view(features.size(0), -1)
-        logger.info("Flattened features.shape = %s", features.shape)
-        return self.layers(features)
-    
-    # Override the forward method at the class level so every instance uses the new method.
-    deca.E_flame.__class__.forward = new_forward
-    logger.info("Successfully patched deca.E_flame.forward at the class level.")
-except Exception as e:
-    logger.error("Error patching deca.E_flame.forward: %s", e)
-    traceback.print_exc()
-
-# -------------------------------------------------------------------
 # Function to process an image using DECA.
 def process_image(image_path):
     logger.info("Step 3: Loading and processing the image from %s", image_path)
@@ -178,9 +112,9 @@ def process_image(image_path):
 
         # Resize the image.
         image_tensor = torch.nn.functional.interpolate(
-            image_tensor, size=(256, 256), mode="bilinear", align_corners=False
+            image_tensor, size=(224, 224), mode="bilinear", align_corners=False
         )
-        logger.info("Image resized to 256x256 successfully. Final shape: %s", image_tensor.shape)
+        logger.info("Image resized to 224x224 successfully. Final shape: %s", image_tensor.shape)
 
         # Generate the 3D face model using DECA.
         logger.info("Step 4: Generating 3D face model using DECA...")
@@ -199,7 +133,6 @@ def process_image(image_path):
         traceback.print_exc()
         return None
 
-# -------------------------------------------------------------------
 # Function to upload a file to AWS S3.
 def upload_to_s3(file_path, s3_key):
     try:
@@ -213,7 +146,6 @@ def upload_to_s3(file_path, s3_key):
         traceback.print_exc()
         return None
 
-# -------------------------------------------------------------------
 # Flask API endpoint for 3D face model generation.
 @app.route("/flask-api/generate", methods=["POST"])
 def generate_3d_face():
@@ -247,7 +179,6 @@ def generate_3d_face():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-# -------------------------------------------------------------------
 # Main entry point.
 if __name__ == "__main__":
     try:
