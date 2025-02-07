@@ -5,11 +5,11 @@ import inspect
 import traceback
 
 # -------------------------------------------------------------------
-# Disable CUDA and related caching so that all torch operations run on CPU
+# Disable CUDA and related caching so that all torch operations run on CPU.
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["PYTORCH_NO_CUDA_MEMORY_CACHING"] = "1"
 
-# Add the DECA directory to the Python path
+# Add the DECA directory to the Python path.
 sys.path.append(os.path.abspath("/home/ubuntu/PatientManagementSystem/DECA"))
 # -------------------------------------------------------------------
 
@@ -19,13 +19,15 @@ import torch
 import torch.nn.functional as F
 
 # -------------------------------------------------------------------
-# Monkey-patch torch.load to force all tensors to be loaded on the CPU.
+# Monkey-patch torch.load so that all tensors load on the CPU.
 original_torch_load = torch.load
+
 
 def cpu_torch_load(*args, **kwargs):
     if "map_location" not in kwargs:
         kwargs["map_location"] = torch.device("cpu")
     return original_torch_load(*args, **kwargs)
+
 
 torch.load = cpu_torch_load
 # -------------------------------------------------------------------
@@ -34,7 +36,7 @@ from flask import Flask, request, jsonify
 import boto3
 
 # -------------------------------------------------------------------
-# Configure logging to help diagnose errors.
+# Configure logging.
 import logging
 
 logging.basicConfig(
@@ -46,13 +48,13 @@ logger = logging.getLogger("ml_deca")
 
 app = Flask(__name__)
 
-# AWS S3 Configurations
-AWS_ACCESS_KEY = "AKIAUP7RI5QI6QH64G6C"  # (Consider moving these to environment variables)
+# AWS S3 Configurations (for production, secure these keys via env variables)
+AWS_ACCESS_KEY = "AKIAUP7RI5QI6QH64G6C"
 AWS_SECRET_KEY = "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"
 AWS_BUCKET_NAME = "patients-tree"
 AWS_REGION = "us-east-2"
 
-# Initialize S3 client
+# Initialize S3 client.
 try:
     s3_client = boto3.client(
         "s3",
@@ -66,11 +68,11 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-# Force PyTorch to run on CPU
+# Force PyTorch to run on CPU.
 torch.backends.cudnn.enabled = False
 device = torch.device("cpu")
 
-# Create a temporary uploads folder for processing images and saving models
+# Create a temporary uploads folder for processing images and saving models.
 UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 logger.info("Uploads folder: %s", UPLOAD_FOLDER)
@@ -81,11 +83,11 @@ from decalib.deca import DECA
 from decalib.utils.config import cfg as deca_cfg
 
 # -------------------------------------------------------------------
-# Initialize DECA in a try/except block.
+# Initialize DECA.
 try:
     logger.info("Step 1: Loading DECA model...")
     deca_cfg.device = "cpu"
-    deca_cfg.model.use_tex = False  # Disable texture generation for simplicity
+    deca_cfg.model.use_tex = False  # Disable texture generation for simplicity.
     deca = DECA(config=deca_cfg)
     deca.device = device
     deca.to(device)
@@ -94,87 +96,87 @@ except Exception as e:
     logger.error("Error initializing DECA model: %s", e)
     traceback.print_exc()
     sys.exit(1)
-# -------------------------------------------------------------------
 
-# Monkey-patch the forward method of the internal encoder (E_flame)
-# to insert an adaptive average pooling layer if the spatial dimensions are >1×1.
+# -------------------------------------------------------------------
+# Monkey-patch deca.E_flame.forward so that the features are pooled to 1x1.
 try:
     import torch.nn as nn
-    # Determine the attribute that holds the convolutional (feature extraction) part.
-    if hasattr(deca.E_flame, 'conv'):
-        conv_attr = 'conv'
-    elif hasattr(deca.E_flame, 'encoder'):
-        conv_attr = 'encoder'
+    # Attempt to identify the internal feature extractor.
+    # Many DECA implementations use an attribute named "base" for this.
+    if hasattr(deca.E_flame, "base"):
+        feature_attr = "base"
+    elif hasattr(deca.E_flame, "conv"):
+        feature_attr = "conv"
+    elif hasattr(deca.E_flame, "encoder"):
+        feature_attr = "encoder"
     else:
-        conv_attr = None
+        feature_attr = None
 
-    if conv_attr is not None:
-        # Save the original forward method for reference (if needed).
+    if feature_attr is not None:
+        # Save the original forward method if needed.
         original_forward = deca.E_flame.forward
 
         def patched_forward(self, x):
             """
-            This patched forward method assumes that the encoder’s feature extractor
-            is stored in either self.conv or self.encoder and that the subsequent
-            linear layers are in self.layers. It applies adaptive average pooling to
-            ensure that the flattened feature vector has the expected size.
+            Pass x through the feature extractor, apply adaptive average pooling
+            if necessary, flatten the result, and pass it to the linear layers.
             """
-            # Obtain the feature map from the convolutional part.
-            features = getattr(self, conv_attr)(x)
-            # If the spatial dimensions are not 1×1, apply adaptive pooling.
+            # Obtain the convolutional features.
+            features = getattr(self, feature_attr)(x)
+            # If the features are not already 1x1 spatially, pool them.
             if features.dim() == 4 and (features.size(2) != 1 or features.size(3) != 1):
                 features = F.adaptive_avg_pool2d(features, (1, 1))
             features = features.view(features.size(0), -1)
             return self.layers(features)
 
-        # Bind the patched_forward method to the instance.
+        # Replace the forward method of the encoder.
         deca.E_flame.forward = patched_forward.__get__(deca.E_flame, type(deca.E_flame))
-        logger.info("Monkey-patched deca.E_flame.forward with adaptive pooling.")
+        logger.info("Monkey-patched deca.E_flame.forward using attribute '%s' for feature extraction.", feature_attr)
     else:
-        logger.warning("Could not find a convolution attribute in deca.E_flame; monkey-patch not applied.")
+        logger.warning("Could not find a known feature extraction attribute in deca.E_flame; monkey-patch not applied.")
 except Exception as e:
     logger.error("Error monkey-patching deca.E_flame.forward: %s", e)
     traceback.print_exc()
 
 # -------------------------------------------------------------------
-# Function to process an image using DECA and generate a 3D face model.
+# Function to process an image using DECA.
 def process_image(image_path):
     logger.info("Step 3: Loading and processing the image from %s", image_path)
     try:
-        # Load and preprocess the image using OpenCV
+        # Load and preprocess the image.
         image = cv2.imread(image_path)
         if image is None:
             raise ValueError("Invalid image format or corrupted file")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
-        # Convert the image to a tensor of shape [1, 3, H, W]
+        # Convert image to tensor of shape [1, 3, H, W] and normalize.
         image_tensor = torch.tensor(image).permute(2, 0, 1).unsqueeze(0).float() / 255.0
         image_tensor = image_tensor.to(device)
         logger.info("Image loaded and preprocessed successfully. Original shape: %s", image_tensor.shape)
 
-        # If the image is not square, perform a center crop to obtain a square image.
+        # If the image is not square, perform a center crop.
         _, _, h, w = image_tensor.shape
         if h != w:
             min_dim = min(h, w)
             top = (h - min_dim) // 2
             left = (w - min_dim) // 2
-            image_tensor = image_tensor[:, :, top:top+min_dim, left:left+min_dim]
+            image_tensor = image_tensor[:, :, top:top + min_dim, left:left + min_dim]
             logger.info("Image center-cropped to square. New shape: %s", image_tensor.shape)
 
-        # Resize the image tensor to 256x256 (adjust the size if your DECA configuration requires a different resolution)
+        # Resize the image to 256x256 (adjust if necessary).
         image_tensor = torch.nn.functional.interpolate(
-            image_tensor, size=(256, 256), mode='bilinear', align_corners=False
+            image_tensor, size=(256, 256), mode="bilinear", align_corners=False
         )
         logger.info("Image resized to 256x256 successfully. Final shape: %s", image_tensor.shape)
 
-        # Generate 3D reconstruction using DECA.
+        # Generate 3D face model using DECA.
         logger.info("Step 4: Generating 3D face model using DECA...")
         with torch.no_grad():
             codedict = deca.encode(image_tensor)
             opdict = deca.decode(codedict)
         logger.info("3D face model generated successfully.")
 
-        # Save the 3D model as a .obj file.
+        # Save the generated 3D model as an OBJ file.
         mesh_path = os.path.join(UPLOAD_FOLDER, "3d_face.obj")
         deca.save_obj(mesh_path, opdict)
         logger.info("Step 5: 3D model saved to %s", mesh_path)
@@ -214,7 +216,7 @@ def generate_3d_face():
         front_img.save(front_img_path)
         logger.info("Front image saved to %s", front_img_path)
 
-        # Process the front image to generate the 3D model.
+        # Process the image to generate a 3D model.
         mesh_path = process_image(front_img_path)
         if not mesh_path:
             return jsonify({"error": "Failed to generate 3D face model"}), 500
