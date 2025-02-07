@@ -107,20 +107,31 @@ except Exception as e:
 def process_image(image_path):
     logger.info("Step 3: Loading and processing the image from %s", image_path)
     try:
-        # Load and preprocess the image
+        # Load and preprocess the image using OpenCV
         image = cv2.imread(image_path)
         if image is None:
             raise ValueError("Invalid image format or corrupted file")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Convert the image to a tensor of shape [1, 3, H, W]
         image_tensor = torch.tensor(image).permute(2, 0, 1).unsqueeze(0).float() / 255.0
         image_tensor = image_tensor.to(device)
-        logger.info("Image loaded and preprocessed successfully.")
+        logger.info("Image loaded and preprocessed successfully. Original shape: %s", image_tensor.shape)
 
-        # Resize the image tensor to 256x256 (adjust size if needed)
+        # If the image is not square, perform a center crop to obtain a square image.
+        _, _, h, w = image_tensor.shape
+        if h != w:
+            min_dim = min(h, w)
+            top = (h - min_dim) // 2
+            left = (w - min_dim) // 2
+            image_tensor = image_tensor[:, :, top:top+min_dim, left:left+min_dim]
+            logger.info("Image center-cropped to square. New shape: %s", image_tensor.shape)
+
+        # Resize the image tensor to 256x256 (adjust the size if your DECA configuration requires a different resolution)
         image_tensor = torch.nn.functional.interpolate(
             image_tensor, size=(256, 256), mode='bilinear', align_corners=False
         )
-        logger.info("Image resized to 256x256 successfully.")
+        logger.info("Image resized to 256x256 successfully. Final shape: %s", image_tensor.shape)
 
         # Generate 3D reconstruction using DECA
         logger.info("Step 4: Generating 3D face model using DECA...")
