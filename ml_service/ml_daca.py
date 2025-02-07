@@ -110,7 +110,7 @@ def process_image(image_path):
             image_tensor = image_tensor[:, :, top:top+min_dim, left:left+min_dim]
             logger.info("Image center-cropped to square. New shape: %s", image_tensor.shape)
 
-        # Resize the image.
+        # Resize the image to 224x224 (DECA's expected input size).
         image_tensor = torch.nn.functional.interpolate(
             image_tensor, size=(224, 224), mode="bilinear", align_corners=False
         )
