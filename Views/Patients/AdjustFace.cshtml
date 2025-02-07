@@ -4,37 +4,8 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<style>
-    /* Loader Overlay Styling */
-    #loader-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.7);
-        z-index: 9999;
-        display: none;             /* Hidden by default */
-        justify-content: center;   /* Center horizontally */
-        align-items: center;       /* Center vertically */
-    }
-
-    .loader {
-        border: 12px solid #f3f3f3; /* Light grey */
-        border-top: 12px solid #3498db; /* Blue */
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0%   { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-</style>
-
-<div id="loader-overlay">
+<!-- Loader Overlay -->
+<div id="page-loader" class="loader-overlay" style="display: none;">
     <div class="loader"></div>
 </div>
 
@@ -66,19 +37,51 @@
     <button id="save-face-adjustment" class="btn btn-success">Guardar Ajustes</button>
 </div>
 
+@section Styles {
+    <style>
+        .loader-overlay {
+            position: fixed;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #3498db;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+        }
+
+        /* Important: Use '@@' so Razor doesn't parse it as a directive */
+        @@keyframes spin {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+}
+
 @section Scripts {
     <!-- Load Three.js and GLTFLoader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
     <script>
-        // Trigger the generation of the 3D model
         document.getElementById('generate-model').addEventListener('click', function () {
-            // Show the loader overlay
-            document.getElementById('loader-overlay').style.display = 'flex';
+            // Show loader
+            const loaderOverlay = document.getElementById('page-loader');
+            loaderOverlay.style.display = 'flex';
 
-            // Retrieve the patient ID from the model.
             let patientId = @Model.Id;
+
             fetch('/Patients/Generate3DModel/' + patientId, {
                 method: 'POST'
             })
@@ -86,19 +89,20 @@
             .then(data => {
                 if (data.success) {
                     alert("✅ Modelo 3D generado con éxito!");
-                    location.reload(); // Refresh the page to load the new model
+                    location.reload(); // Reload to load the new model
                 } else {
                     alert("❌ Error al generar el modelo: " + data.message);
+                    // Hide loader on error
+                    loaderOverlay.style.display = 'none';
                 }
             })
-            .catch(error => console.error('❌ Error:', error))
-            .finally(() => {
-                // Hide the loader overlay regardless of success or failure
-                document.getElementById('loader-overlay').style.display = 'none';
+            .catch(error => {
+                console.error('❌ Error:', error);
+                // Hide loader on error
+                loaderOverlay.style.display = 'none';
             });
         });
 
-        // Initialize Three.js scene on page load
         document.addEventListener('DOMContentLoaded', function () {
             const container = document.getElementById('threejs-container');
             let model3DUrl = '@Model.Model3DUrl'.trim();
@@ -110,7 +114,7 @@
                 container.innerHTML = ""; // Clear previous content
 
                 if (!url || url === "null" || url.trim() === "") {
-                    container.innerHTML = "<p style='color:red'>⚠️ No 3D model found. Por favor, genera uno.</p>";
+                    container.innerHTML = "<p style='color:red'>⚠️ No se encontró el modelo 3D. Por favor, genera uno.</p>";
                     return;
                 }
 
@@ -147,12 +151,12 @@
                 });
             }
 
-            // Load the 3D model if its URL exists
+            // Load the 3D model if it exists
             if (model3DUrl) {
                 init3DModel(model3DUrl);
             }
 
-            // Capture snapshot from Three.js canvas
+            // Capture a snapshot from the renderer
             function captureSnapshot() {
                 return new Promise((resolve, reject) => {
                     if (!renderer) {
@@ -165,7 +169,6 @@
                 });
             }
 
-            // Save face adjustments (including snapshot)
             document.getElementById('save-face-adjustment').addEventListener('click', async function () {
                 const notes = document.getElementById('notes').value.trim();
                 if (!notes) {
