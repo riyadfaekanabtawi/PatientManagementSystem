@@ -116,6 +116,12 @@ def process_image(image_path):
         image_tensor = image_tensor.to(device)
         logger.info("Image loaded and preprocessed successfully.")
 
+        # Resize the image tensor to 256x256 (adjust size if needed)
+        image_tensor = torch.nn.functional.interpolate(
+            image_tensor, size=(256, 256), mode='bilinear', align_corners=False
+        )
+        logger.info("Image resized to 256x256 successfully.")
+
         # Generate 3D reconstruction using DECA
         logger.info("Step 4: Generating 3D face model using DECA...")
         with torch.no_grad():
