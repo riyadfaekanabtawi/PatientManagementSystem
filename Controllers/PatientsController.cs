@@ -1,5 +1,8 @@
 using System;
+using System.IO;                        // Added for file/stream operations
 using System.Linq;
+using System.Net.Http;                  // Added for HttpClient
+using System.Net.Http.Headers;          // Added for MediaTypeHeaderValue
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,8 +14,8 @@ using Amazon.S3.Transfer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using PatientManagementSystem.Services;  // ✅ Import the service
-using System.Text.Json;  // ✅ Required for JSON Parsing
+using PatientManagementSystem.Services;
+using System.Text.Json;   
 
 namespace PatientManagementSystem.Controllers
 {
@@ -24,12 +27,15 @@ namespace PatientManagementSystem.Controllers
         private readonly IAmazonS3 _s3Client;
         private readonly ILogger<PatientsController> _logger;
 
-        public PatientsController(AppDbContext context, IConfiguration configuration, I3DModelService modelService, IAmazonS3 s3Client, ILogger<PatientsController> logger)
+        private readonly HttpClient _httpClient;
+
+        public PatientsController(AppDbContext context, IHttpClientFactory httpClientFactory, IConfiguration configuration, I3DModelService modelService, IAmazonS3 s3Client, ILogger<PatientsController> logger)
         {
             _context = context;
             _configuration = configuration;
             _3DModelService = modelService;
             _s3Client = s3Client;
+            _httpClient = httpClientFactory.CreateClient();
             _logger = logger;
         }
 
@@ -266,37 +272,44 @@ namespace PatientManagementSystem.Controllers
                 return NotFound(new { success = false, message = "Patient not found." });
             }
 
-            // Make sure the patient record contains the front image file path.
-            // (Assume patient.FrontImagePath stores the absolute path to the image file.)
-            if (string.IsNullOrEmpty(patient.FrontImagePath) || !System.IO.File.Exists(patient.FrontImagePath))
+            // Ensure that a front image URL exists.
+            if (string.IsNullOrEmpty(patient.FrontImageUrl))
             {
                 return BadRequest(new { success = false, message = "No front image available for this patient." });
             }
 
             try
             {
-                // Open the front image file.
-                using var stream = System.IO.File.OpenRead(patient.FrontImagePath);
-                using var content = new MultipartFormDataContent();
-                var fileContent = new StreamContent(stream);
-                // Set an appropriate content type (adjust if your image is PNG, etc.)
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
-                // Add the file content with the key "front" (which your Python code expects)
-                content.Add(fileContent, "front", "front_image.jpg");
-
-                _logger.LogInformation("🔄 Sending request to ML service...");
-                // POST the multipart form data to your Python Flask endpoint.
-                var response = await _httpClient.PostAsync("http://127.0.0.1:5001/flask-api/generate", content);
-                var responseData = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation($"📩 API Response (Raw): {responseData}");
-
-                if (!response.IsSuccessStatusCode)
+                // Download the image from the provided URL.
+                var imageResponse = await _httpClient.GetAsync(patient.FrontImageUrl);
+                if (!imageResponse.IsSuccessStatusCode)
                 {
-                    _logger.LogError($"❌ API call failed. Status: {response.StatusCode}, Response: {responseData}");
+                    return BadRequest(new { success = false, message = "Failed to download the front image." });
+                }
+
+                // Obtain the image stream.
+                var imageStream = await imageResponse.Content.ReadAsStreamAsync();
+
+                using var multipartContent = new MultipartFormDataContent();
+                var streamContent = new StreamContent(imageStream);
+                // Set an appropriate content type (adjust if your image is not JPEG).
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+                // Add the file content with the key "front" (which your Flask code expects)
+                multipartContent.Add(streamContent, "front", "front_image.jpg");
+
+                _logger.LogInformation("Sending request to ML service...");
+                // Send the POST request to your Flask ML service.
+                var mlResponse = await _httpClient.PostAsync("http://127.0.0.1:5001/flask-api/generate", multipartContent);
+                var responseData = await mlResponse.Content.ReadAsStringAsync();
+                _logger.LogInformation($"ML Service Response: {responseData}");
+
+                if (!mlResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"ML service call failed. Status: {mlResponse.StatusCode}, Response: {responseData}");
                     return BadRequest(new { success = false, message = responseData });
                 }
 
-                // The ML service returns JSON with the key "mesh_file_url"
+                // Deserialize the response; your Flask service returns JSON with a "mesh_file_url" key.
                 var jsonResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(responseData);
                 if (jsonResponse != null && jsonResponse.ContainsKey("mesh_file_url"))
                 {
@@ -306,13 +319,13 @@ namespace PatientManagementSystem.Controllers
                 }
                 else
                 {
-                    _logger.LogError("❌ API response did not contain 'mesh_file_url'.");
+                    _logger.LogError("ML service response did not contain 'mesh_file_url'.");
                     return BadRequest(new { success = false, message = "Invalid response from ML service." });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"❌ Exception calling ML service: {ex.Message}");
+                _logger.LogError($"Exception calling ML service: {ex.Message}");
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
