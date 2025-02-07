@@ -3,6 +3,25 @@ import os
 import sys
 import traceback
 
+import logging
+import os
+
+# Define log file path
+LOG_FILE_PATH = os.path.join(os.getcwd(), "ml_deca_error.log")
+
+# Configure logging to write to a file and console
+logging.basicConfig(
+    level=logging.DEBUG,  # Ensure all log levels are captured
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE_PATH, mode="a"),  # Append logs to file
+        logging.StreamHandler()  # Also log to console
+    ],
+)
+
+logger = logging.getLogger("ml_deca")
+
+
 # -------------------------------------------------------------------
 # Force CPU usage and disable CUDA caching.
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
