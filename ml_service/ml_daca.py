@@ -33,7 +33,7 @@ import boto3
 # Configure logging.
 import logging
 logging.basicConfig(
-    level=logging.INFO,  # Set to INFO; you can change to DEBUG for more details.
+    level=logging.INFO,  # Change to DEBUG for more detailed logs.
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("ml_deca")
@@ -91,31 +91,45 @@ except Exception as e:
     sys.exit(1)
 
 # -------------------------------------------------------------------
-# Patch the first linear layer in deca.E_flame.layers.
-# The error indicates that the input to the linear layer has size 8192
-# when it should have size 2048. We assume that the first layer is a nn.Linear.
+# Override the forward method of the encoder (E_flame) at the class level.
+# This new forward method extracts convolutional features using a candidate attribute,
+# applies adaptive pooling if the spatial dimensions are greater than 1x1, flattens,
+# and then feeds the result to the fully connected layers.
 try:
-    import torch.nn as nn
-    layers = deca.E_flame.layers  # Usually an nn.Sequential.
-    if isinstance(layers, nn.Sequential) and len(layers) > 0 and isinstance(layers[0], nn.Linear):
-        original_linear_forward = layers[0].forward
+    def new_forward(self, x):
+        # Try known attributes for feature extraction.
+        if hasattr(self, "encoder"):
+            features = self.encoder(x)
+            logger.info("Using attribute 'encoder' for feature extraction; features.shape = %s", features.shape)
+        elif hasattr(self, "base"):
+            features = self.base(x)
+            logger.info("Using attribute 'base' for feature extraction; features.shape = %s", features.shape)
+        elif hasattr(self, "conv"):
+            features = self.conv(x)
+            logger.info("Using attribute 'conv' for feature extraction; features.shape = %s", features.shape)
+        else:
+            raise AttributeError("No known convolutional attribute found in E_flame.")
 
-        def patched_linear_forward(self, x):
-            # If x is a 2D tensor with 8192 features, reshape it.
-            if x.dim() == 2 and x.size(1) == 8192:
-                B = x.size(0)
-                logger.info("Patched linear layer: reshaping input from 8192 to 2048 features.")
-                # Reshape to [B, 2048, 2, 2] then average pool over spatial dimensions.
-                x = x.view(B, 2048, 2, 2).mean(dim=(2, 3))
-            return original_linear_forward(x)
-
-        # Bind the new forward method to the first linear layer.
-        layers[0].forward = patched_linear_forward.__get__(layers[0], type(layers[0]))
-        logger.info("Patched the first linear layer in deca.E_flame.layers.")
-    else:
-        logger.warning("deca.E_flame.layers is not a Sequential with a Linear as the first module; no patch applied.")
+        # If features are 4D and the spatial dimensions are not 1x1, pool them.
+        if features.dim() == 4:
+            H, W = features.size(2), features.size(3)
+            if H != 1 or W != 1:
+                logger.info("Before pooling, features.shape = %s", features.shape)
+                features = F.adaptive_avg_pool2d(features, (1, 1))
+                logger.info("After pooling, features.shape = %s", features.shape)
+        else:
+            logger.info("Features are not 4D; features.shape = %s", features.shape)
+            
+        # Flatten the features.
+        features = features.view(features.size(0), -1)
+        logger.info("Flattened features.shape = %s", features.shape)
+        return self.layers(features)
+    
+    # Override the forward method at the class level so every instance uses the new method.
+    deca.E_flame.__class__.forward = new_forward
+    logger.info("Successfully patched deca.E_flame.forward at the class level.")
 except Exception as e:
-    logger.error("Error patching the first linear layer: %s", e)
+    logger.error("Error patching deca.E_flame.forward: %s", e)
     traceback.print_exc()
 
 # -------------------------------------------------------------------
@@ -134,7 +148,7 @@ def process_image(image_path):
         image_tensor = image_tensor.to(device)
         logger.info("Image loaded and preprocessed successfully. Original shape: %s", image_tensor.shape)
 
-        # Center crop if necessary.
+        # If not square, perform a center crop.
         _, _, h, w = image_tensor.shape
         if h != w:
             min_dim = min(h, w)
@@ -149,7 +163,7 @@ def process_image(image_path):
         )
         logger.info("Image resized to 256x256 successfully. Final shape: %s", image_tensor.shape)
 
-        # Generate 3D face model using DECA.
+        # Generate the 3D face model using DECA.
         logger.info("Step 4: Generating 3D face model using DECA...")
         with torch.no_grad():
             codedict = deca.encode(image_tensor)
@@ -191,7 +205,7 @@ def generate_3d_face():
         if not front_img:
             return jsonify({"error": "Front image is required"}), 400
 
-        # Save the uploaded image.
+        # Save the uploaded front image locally.
         front_img_path = os.path.join(UPLOAD_FOLDER, "front_image.jpg")
         front_img.save(front_img_path)
         logger.info("Front image saved to %s", front_img_path)
