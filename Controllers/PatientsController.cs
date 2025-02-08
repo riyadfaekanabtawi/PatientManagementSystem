@@ -228,45 +228,59 @@ namespace PatientManagementSystem.Controllers
             return $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
         }
 
-
         [HttpPost]
+        [Route("Patients/SaveFaceAdjustment/{id}")]
         public async Task<IActionResult> SaveFaceAdjustment(int id, [FromBody] FaceAdjustmentRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Notes))
+            {
+                return Json(new { success = false, message = "Debes ingresar las notas" });
+            }
+
             var patient = await _context.Patients.FindAsync(id);
             if (patient == null) return NotFound();
 
             var fileName = $"adjustments/{id}_{DateTime.UtcNow.Ticks}.png";
 
-            using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
+            try
             {
-                var uploadRequest = new TransferUtilityUploadRequest
+                using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
                 {
-                    InputStream = stream,
-                    BucketName = S3BucketName,
-                    Key = fileName,
-                    ContentType = "image/png",
-                    CannedACL = S3CannedACL.PublicRead
+                    var uploadRequest = new TransferUtilityUploadRequest
+                    {
+                        InputStream = stream,
+                        BucketName = S3BucketName,
+                        Key = fileName,
+                        ContentType = "image/png",
+                        CannedACL = S3CannedACL.PublicRead
+                    };
+
+                    var transferUtility = new TransferUtility(_s3Client);
+                    await transferUtility.UploadAsync(uploadRequest);
+                }
+
+                var snapshotUrl = $"https://{S3BucketName}.s3.amazonaws.com/{fileName}";
+
+                var history = new FaceAdjustmentHistory
+                {
+                    PatientId = id,
+                    AdjustedImageUrl = snapshotUrl,
+                    Notes = request.Notes,
+                    AdjustmentDate = DateTime.UtcNow
                 };
 
-                var transferUtility = new TransferUtility(_s3Client);
-                await transferUtility.UploadAsync(uploadRequest);
+                _context.FaceAdjustmentHistories.Add(history);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true });
             }
-
-            var snapshotUrl = $"https://{S3BucketName}.s3.amazonaws.com/{fileName}";
-
-            var history = new FaceAdjustmentHistory
+            catch (Exception ex)
             {
-                PatientId = id,
-                AdjustedImageUrl = snapshotUrl,
-                Notes = request.Notes,
-                AdjustmentDate = DateTime.UtcNow
-            };
-
-            _context.FaceAdjustmentHistories.Add(history);
-            await _context.SaveChangesAsync();
-
-            return Json(new { success = true });
+                _logger.LogError($"❌ Error saving face adjustment: {ex.Message}");
+                return Json(new { success = false, message = "Error al guardar el ajuste de cara" });
+            }
         }
+
 
 
         [Route("Patients/Generate3DModel/{id}")]

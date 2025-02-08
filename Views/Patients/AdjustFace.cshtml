@@ -81,6 +81,7 @@
             const container = document.getElementById('threejs-container');
             const loaderOverlay = document.getElementById('page-loader');
             const snapshotButton = document.getElementById('capture-snapshot');
+            const notesField = document.getElementById('notes');
             let renderer, scene, camera, controls;
 
             const patientId = @(Model?.Id ?? 0); // Ensure patientId is valid
@@ -178,24 +179,41 @@
             // Capture Snapshot
             snapshotButton.addEventListener('click', async function () {
                 const dataUrl = renderer.domElement.toDataURL("image/png");
-                const notes = document.getElementById('notes').value;
+                const notes = notesField.value.trim();
+
+                if (!notes) {
+                    alert("Debes ingresar las notas");
+                    return;
+                }
 
                 const requestBody = {
                     Snapshot: dataUrl,
                     Notes: notes
                 };
 
-                const response = await fetch(`/Patients/SaveFaceAdjustment/${patientId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
-                });
+                try {
+                    const response = await fetch(`/Patients/SaveFaceAdjustment/${patientId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    });
 
-                const result = await response.json();
-                if (result.success) {
-                    alert("✅ Snapshot saved successfully!");
-                } else {
-                    alert("❌ Error saving snapshot.");
+                    if (!response.ok) {
+                        console.error("❌ Fetch failed:", response.status, response.statusText);
+                        alert("❌ Error al guardar el snapshot.");
+                        return;
+                    }
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert("✅ Snapshot guardado exitosamente.");
+                    } else {
+                        alert(`❌ ${result.message}`);
+                    }
+                } catch (error) {
+                    console.error("❌ Error:", error);
+                    alert("❌ Ocurrió un error al guardar el snapshot.");
                 }
             });
 
