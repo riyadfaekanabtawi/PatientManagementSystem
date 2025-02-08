@@ -30,6 +30,7 @@ namespace PatientManagementSystem.Models
         public string? RightImageUrl { get; set; }
         public string? BackImageUrl { get; set; }  // ✅ Added BackImageUrl back
         public string? Model3DUrl { get; set; }
+        public string? MeshyTaskId { get; set; }
 
         // ✅ Face Adjustment Properties
         public int? CheekAdjustment { get; set; }

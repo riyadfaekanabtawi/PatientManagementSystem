@@ -173,16 +173,61 @@ namespace PatientManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public IActionResult AdjustFace(int id)
+        public async Task<IActionResult> AdjustFace(int id)
         {
-            var patient = _context.Patients.FirstOrDefault(p => p.Id == id);
+            var patient = await _context.Patients.FindAsync(id);
             if (patient == null)
             {
                 return NotFound("Patient not found.");
             }
 
+            if (!string.IsNullOrEmpty(patient.MeshyTaskId))
+            {
+                // ✅ Check the status of the existing Meshy Task
+                var taskStatus = await CheckMeshyTaskStatus(patient.MeshyTaskId, id);
+                if (taskStatus != null)
+                {
+                    patient.Model3DUrl = taskStatus;
+                    _context.Update(patient);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             return View(patient);
         }
+
+        private async Task<string?> CheckMeshyTaskStatus(string taskId, int patientId)
+        {
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
+
+            var response = await httpClient.GetAsync($"https://api.meshy.ai/openapi/v1/image-to-3d/{taskId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError($"Meshy API error: {await response.Content.ReadAsStringAsync()}");
+                return null;
+            }
+
+            var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
+            var status = result.GetProperty("status").GetString();
+
+            if (status != "SUCCEEDED")
+            {
+                return null;
+            }
+
+            var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+            var s3Key = $"models/patient_{patientId}_{Guid.NewGuid()}.glb";
+
+            var uploadSuccess = await UploadToS3(glbUrl, s3Key);
+            if (!uploadSuccess)
+            {
+                return null;
+            }
+
+            return $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> SaveFaceAdjustment(int id, [FromBody] FaceAdjustmentRequest request)
@@ -222,8 +267,10 @@ namespace PatientManagementSystem.Controllers
 
             return Json(new { success = true });
         }
+
+
         [Route("Patients/Generate3DModel/{id}")]
-        [HttpPost("Generate3DModel/{id}")]
+        [HttpPost]
         public async Task<IActionResult> Generate3DModel(int id)
         {
             var patient = await _context.Patients.FindAsync(id);
@@ -258,14 +305,21 @@ namespace PatientManagementSystem.Controllers
                 var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
                 var taskId = result.GetProperty("result").GetString();
 
+                // ✅ Save the new task ID in the database
+                patient.MeshyTaskId = taskId;
+                _context.Update(patient);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"✅ Task ID {taskId} saved for Patient ID {id}");
+
                 return Json(new { success = true, taskId });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Exception in Generate3DModel: {ex.Message}");
+                _logger.LogError($"❌ Exception in Generate3DModel: {ex.Message}");
                 return Json(new { success = false, message = "An error occurred while creating the 3D task." });
             }
         }
+
 
         
         [Route("Patients/CheckModelStatus/{taskId}/{id}")]
