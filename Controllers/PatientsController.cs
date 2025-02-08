@@ -244,23 +244,34 @@ namespace PatientManagementSystem.Controllers
 
             try
             {
+                // Retrieve S3 credentials and configuration
+                var awsAccessKey = _configuration["AWS:AccessKey"];
+                var awsSecretKey = _configuration["AWS:SecretKey"];
+                var awsRegion = _configuration["AWS:Region"];
+                var s3Bucket = _configuration["AWS:BucketName"];
+
+                // Use RegionEndpoint from Amazon SDK
+                var s3Client = new AmazonS3Client(awsAccessKey, awsSecretKey, RegionEndpoint.GetBySystemName(awsRegion));
+
+                // Convert base64 string to byte array and upload to S3
                 using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
                 {
                     var uploadRequest = new TransferUtilityUploadRequest
                     {
                         InputStream = stream,
-                        BucketName = S3BucketName,
+                        BucketName = s3Bucket,
                         Key = fileName,
                         ContentType = "image/png",
                         CannedACL = S3CannedACL.PublicRead
                     };
 
-                    var transferUtility = new TransferUtility(_s3Client);
+                    var transferUtility = new TransferUtility(s3Client);
                     await transferUtility.UploadAsync(uploadRequest);
                 }
 
-                var snapshotUrl = $"https://{S3BucketName}.s3.amazonaws.com/{fileName}";
+                var snapshotUrl = $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
 
+                // Save snapshot URL and notes to the database
                 var history = new FaceAdjustmentHistory
                 {
                     PatientId = id,
@@ -280,8 +291,6 @@ namespace PatientManagementSystem.Controllers
                 return Json(new { success = false, message = "Error al guardar el ajuste de cara" });
             }
         }
-
-
 
         [Route("Patients/Generate3DModel/{id}")]
         [HttpPost]
