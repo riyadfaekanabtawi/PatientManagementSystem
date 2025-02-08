@@ -315,7 +315,10 @@ namespace PatientManagementSystem.Controllers
         }
 
 
-
+        private bool PatientExists(int id)
+        {
+            return _context.Patients.Any(e => e.Id == id);
+        }
 
         private async Task<string> UploadFileToS3(IFormFile file)
         {
