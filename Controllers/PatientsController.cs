@@ -267,6 +267,7 @@ namespace PatientManagementSystem.Controllers
             }
         }
 
+        
         [Route("Patients/CheckModelStatus/{taskId}/{id}")]
         [HttpGet]
         public async Task<IActionResult> CheckModelStatus(string taskId, int id)
@@ -292,34 +293,52 @@ namespace PatientManagementSystem.Controllers
                     return Json(new { success = false, pending = true });
                 }
 
-                // Fetch the GLB file URL
+                // ✅ Fetch the GLB file URL from Meshy
                 var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+                _logger.LogInformation($"✅ GLB model available at: {glbUrl}");
 
-                // Download and upload to S3
+                // ✅ Define the S3 Key for storing the model
                 var s3Key = $"models/patient_{id}_{Guid.NewGuid()}.glb";
+
+                // ✅ Upload the model to S3
                 var uploadSuccess = await UploadToS3(glbUrl, s3Key);
                 if (!uploadSuccess)
                 {
+                    _logger.LogError("❌ Failed to upload GLB model to S3.");
                     return Json(new { success = false, message = "Failed to upload model to S3." });
                 }
 
-                // Update the patient record with the S3 URL
+                // ✅ Construct the final S3 URL
+                var s3Url = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
+
+                // ✅ Update the Patient's Model3DUrl in the Database
                 var patient = await _context.Patients.FindAsync(id);
                 if (patient != null)
                 {
-                    patient.Model3DUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
+                    patient.Model3DUrl = s3Url;
                     _context.Update(patient);
                     await _context.SaveChangesAsync();
+                    _logger.LogInformation($"✅ Model3DUrl updated in DB: {s3Url}");
+                }
+                else
+                {
+                    _logger.LogWarning($"⚠️ Patient with ID {id} not found.");
                 }
 
-                return Json(new { success = true, modelUrl = patient?.Model3DUrl });
+                // ✅ Return the final S3 URL for rendering
+                return Json(new { success = true, modelUrl = s3Url });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Exception in CheckModelStatus: {ex.Message}");
+                _logger.LogError($"❌ Exception in CheckModelStatus: {ex.Message}");
                 return Json(new { success = false, message = "An error occurred while checking the 3D model status." });
             }
         }
+
+
+
+
+
 
         private bool PatientExists(int id)
         {
@@ -362,12 +381,34 @@ namespace PatientManagementSystem.Controllers
         {
             try
             {
+                // Fetch the file bytes from the URL
                 using var httpClient = new HttpClient();
                 var fileBytes = await httpClient.GetByteArrayAsync(fileUrl);
-                using var transferUtility = new TransferUtility(_s3Client);
-                using var memoryStream = new MemoryStream(fileBytes);
 
-                await transferUtility.UploadAsync(memoryStream, S3BucketName, key);
+                // Get AWS configuration from settings
+                var awsAccessKey = _configuration["AWS:AccessKey"];
+                var awsSecretKey = _configuration["AWS:SecretKey"];
+                var awsRegion = _configuration["AWS:Region"];
+                var s3Bucket = _configuration["AWS:BucketName"];
+
+                // Create S3 client
+                var s3Client = new AmazonS3Client(awsAccessKey, awsSecretKey, RegionEndpoint.GetBySystemName(awsRegion));
+
+                // Create upload request
+                using var memoryStream = new MemoryStream(fileBytes);
+                var uploadRequest = new TransferUtilityUploadRequest
+                {
+                    InputStream = memoryStream,
+                    BucketName = s3Bucket,
+                    Key = key,
+                    ContentType = "model/gltf-binary", // MIME type for GLB files
+                    CannedACL = S3CannedACL.PublicRead
+                };
+
+                // Upload the file
+                var transferUtility = new TransferUtility(s3Client);
+                await transferUtility.UploadAsync(uploadRequest);
+
                 return true;
             }
             catch (Exception ex)
