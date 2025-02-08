@@ -137,11 +137,21 @@
 
         // ✅ Show loader when generating 3D model
         document.getElementById('generate-model').addEventListener('click', async function () {
-            loaderOverlay.style.display = 'flex'; // Show loader immediately
+        loaderOverlay.style.display = 'flex'; // Show loader immediately
 
+        try {
+            let response = await fetch(`/Patients/Generate3DModel/${patientId}`, { method: 'POST' });
+
+            if (!response.ok) {
+                console.error("❌ Fetch failed:", response.status, response.statusText);
+                loaderOverlay.style.display = 'none'; // Hide loader on failure
+                return;
+            }
+
+            let responseBody = await response.text(); // Get raw response text
             try {
-                let response = await fetch(`/Patients/Generate3DModel/${patientId}`, { method: 'POST' });
-                let data = await response.json();
+                let data = JSON.parse(responseBody); // Parse response as JSON
+                console.log("✅ Parsed JSON data:", data);
 
                 if (!data.success) {
                     alert("❌ Error: " + data.message);
@@ -152,26 +162,43 @@
                 let taskId = data.taskId;
                 alert("✅ Task created! Waiting for 3D model...");
 
+                // Polling logic remains the same
                 let checkInterval = setInterval(async () => {
                     let statusResponse = await fetch(`/Patients/CheckModelStatus/${taskId}/${patientId}`);
-                    let statusData = await statusResponse.json();
-
-                    if (statusData.success) {
-                        clearInterval(checkInterval);
-                        alert("✅ 3D model ready! Reloading...");
-                        location.reload();
-                    } else if (!statusData.pending) {
-                        clearInterval(checkInterval);
-                        alert("❌ Error: " + statusData.message);
+                    if (!statusResponse.ok) {
+                        console.error("❌ Fetch failed:", statusResponse.status, statusResponse.statusText);
                         loaderOverlay.style.display = 'none'; // Hide loader on failure
+                        clearInterval(checkInterval);
+                        return;
+                    }
+
+                    let statusBody = await statusResponse.text();
+                    try {
+                        let statusData = JSON.parse(statusBody);
+                        if (statusData.success) {
+                            clearInterval(checkInterval);
+                            alert("✅ 3D model ready! Reloading...");
+                            location.reload();
+                        } else if (!statusData.pending) {
+                            clearInterval(checkInterval);
+                            alert("❌ Error: " + statusData.message);
+                            loaderOverlay.style.display = 'none'; // Hide loader on failure
+                        }
+                    } catch (error) {
+                        console.error("❌ Error parsing JSON:", statusBody, error);
+                        loaderOverlay.style.display = 'none'; // Hide loader on JSON error
+                        clearInterval(checkInterval);
                     }
                 }, 5000);
-
             } catch (error) {
-                console.error("❌ Error:", error);
-                loaderOverlay.style.display = 'none'; // Hide loader on failure
+                console.error("❌ Error parsing JSON:", responseBody, error);
+                loaderOverlay.style.display = 'none'; // Hide loader on JSON error
             }
-        });
+        } catch (error) {
+            console.error("❌ Error:", error);
+            loaderOverlay.style.display = 'none'; // Hide loader on failure
+        }
+    });
 
         // ✅ Ensure loader stays until model is fully rendered
         if (model3DUrl) {
