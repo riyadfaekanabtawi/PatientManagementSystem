@@ -193,41 +193,131 @@ namespace PatientManagementSystem.Controllers
             if (patient == null || string.IsNullOrEmpty(patient.FrontImageUrl))
                 return Json(new { success = false, message = "Invalid patient or missing front image." });
 
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
+            try
+            {
+                // Define the Curl command
+                string curlCommand = $@"
+                    curl https://api.meshy.ai/openapi/v1/image-to-3d \
+                    -X POST \
+                    -H 'Authorization: Bearer {MeshyApiKey}' \
+                    -H 'Content-Type: application/json' \
+                    -d '{{
+                        ""image_url"": ""{patient.FrontImageUrl}"",
+                        ""enable_pbr"": true,
+                        ""should_remesh"": true,
+                        ""should_texture"": true
+                    }}'";
 
-            var requestBody = new { image_url = patient.FrontImageUrl, enable_pbr = true, should_remesh = true, should_texture = true };
-            var response = await _httpClient.PostAsync("https://api.meshy.ai/openapi/v1/image-to-3d",
-                new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json"));
+                // Execute the Curl command
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "/bin/bash",
+                        Arguments = $"-c \"{curlCommand}\"",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
 
-            if (!response.IsSuccessStatusCode) return Json(new { success = false, message = "Failed to create 3D task" });
+                process.Start();
+                string result = await process.StandardOutput.ReadToEndAsync();
+                string error = await process.StandardError.ReadToEndAsync();
+                process.WaitForExit();
 
-            var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
-            return Json(new { success = true, taskId = result.GetProperty("result").GetString() });
+                if (process.ExitCode != 0)
+                {
+                    _logger.LogError($"Curl error: {error}");
+                    return Json(new { success = false, message = "Failed to create 3D task" });
+                }
+
+                // Parse the result
+                var jsonResult = JsonSerializer.Deserialize<JsonElement>(result);
+                var taskId = jsonResult.GetProperty("result").GetString();
+
+                return Json(new { success = true, taskId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Exception while generating 3D model: {ex.Message}");
+                return Json(new { success = false, message = "An error occurred while creating the 3D task" });
+            }
         }
+
 
         [HttpGet("CheckModelStatus/{taskId}/{id}")]
         public async Task<IActionResult> CheckModelStatus(string taskId, int id)
         {
-            var response = await _httpClient.GetAsync($"https://api.meshy.ai/openapi/v1/image-to-3d/{taskId}");
-            if (!response.IsSuccessStatusCode) return Json(new { success = false, message = "Failed to fetch 3D model status" });
-
-            var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
-            if (result.GetProperty("status").GetString() != "SUCCEEDED") return Json(new { success = false, pending = true });
-
-            var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
-            var s3Key = $"models/patient_{id}.glb";
-            if (!await UploadToS3(modelUrl, s3Key)) return Json(new { success = false, message = "Failed to upload model to S3" });
-
-            var patient = await _context.Patients.FindAsync(id);
-            if (patient != null)
+            try
             {
-                patient.Model3DUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
-                _context.Update(patient);
-                await _context.SaveChangesAsync();
-            }
+                // Define the Curl command to check the task status
+                string curlCommand = $@"
+                    curl https://api.meshy.ai/openapi/v1/image-to-3d/{taskId} \
+                    -H 'Authorization: Bearer {MeshyApiKey}'";
 
-            return Json(new { success = true, modelUrl = patient?.Model3DUrl });
+                // Execute the Curl command
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "/bin/bash",
+                        Arguments = $"-c \"{curlCommand}\"",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                string result = await process.StandardOutput.ReadToEndAsync();
+                string error = await process.StandardError.ReadToEndAsync();
+                process.WaitForExit();
+
+                if (process.ExitCode != 0)
+                {
+                    _logger.LogError($"Curl error: {error}");
+                    return Json(new { success = false, message = "Failed to fetch 3D model status" });
+                }
+
+                // Parse the result
+                var jsonResult = JsonSerializer.Deserialize<JsonElement>(result);
+                var status = jsonResult.GetProperty("status").GetString();
+
+                if (status != "SUCCEEDED")
+                {
+                    return Json(new { success = false, pending = true });
+                }
+
+                // Fetch the model URL and upload it to S3
+                var modelUrl = jsonResult.GetProperty("model_urls").GetProperty("glb").GetString();
+                var s3Key = $"models/patient_{id}.glb";
+                var uploadSuccess = await UploadToS3(modelUrl, s3Key);
+
+                if (!uploadSuccess)
+                {
+                    return Json(new { success = false, message = "Failed to upload model to S3" });
+                }
+
+                var patient = await _context.Patients.FindAsync(id);
+                if (patient != null)
+                {
+                    patient.Model3DUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
+                    _context.Update(patient);
+                    await _context.SaveChangesAsync();
+                }
+
+                return Json(new { success = true, modelUrl = patient?.Model3DUrl });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Exception while checking 3D model status: {ex.Message}");
+                return Json(new { success = false, message = "An error occurred while checking the 3D model status" });
+            }
         }
+
 
         private async Task<string> UploadFileToS3(IFormFile file)
         {
