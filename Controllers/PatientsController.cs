@@ -186,7 +186,7 @@ namespace PatientManagementSystem.Controllers
 
             return Json(new { success = true });
         }
-
+        [Route("Patients/Generate3DModel/{id}")]
         [HttpPost("Generate3DModel/{id}")]
         public async Task<IActionResult> Generate3DModel(int id)
         {
@@ -231,7 +231,7 @@ namespace PatientManagementSystem.Controllers
             }
         }
 
-
+        [Route("Patients/CheckModelStatus/{taskId}/{id}")]
         [HttpGet("CheckModelStatus/{taskId}/{id}")]
         public async Task<IActionResult> CheckModelStatus(string taskId, int id)
         {
