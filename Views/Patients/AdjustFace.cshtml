@@ -78,37 +78,11 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
     <script>
-        // Show a full-page loader while generating the 3D model
-        document.getElementById('generate-model').addEventListener('click', function () {
-            const loaderOverlay = document.getElementById('page-loader');
-            loaderOverlay.style.display = 'flex'; // Show loader
-
-            let patientId = @Model.Id;
-
-            fetch('/Patients/Generate3DModel/' + patientId, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert("✅ Modelo 3D generado con éxito!");
-                    location.reload(); // Refresh to load the new model
-                } else {
-                    alert("❌ Error al generar el modelo: " + data.message);
-                    loaderOverlay.style.display = 'none'; // Hide loader on error
-                }
-            })
-            .catch(error => {
-                console.error('❌ Error:', error);
-                loaderOverlay.style.display = 'none'; // Hide loader on error
-            });
-        });
-
         document.addEventListener('DOMContentLoaded', function () {
             const container = document.getElementById('threejs-container');
+            const loaderOverlay = document.getElementById('page-loader');
             let model3DUrl = '@Model.Model3DUrl'.trim();
             let patientId = @Model.Id;
-
             let renderer, scene, camera;
 
             function init3DModel(url) {
@@ -116,6 +90,7 @@
 
                 if (!url || url === "null" || url.trim() === "") {
                     container.innerHTML = "<p style='color:red'>⚠️ No se encontró el modelo 3D. Por favor, genera uno primero.</p>";
+                    loaderOverlay.style.display = 'none'; // Hide loader
                     return;
                 }
 
@@ -148,6 +123,8 @@
                         renderer.render(scene, camera);
                     }
                     animate();
+
+                    loaderOverlay.style.display = 'none'; // Hide loader when model is fully rendered
                 });
 
                 window.addEventListener('resize', () => {
@@ -157,51 +134,47 @@
                 });
             }
 
-            // Load the 3D model if its URL is valid
+            // Load the 3D model if available
             if (model3DUrl) {
-                init3DModel(model3DUrl);
+                loaderOverlay.style.display = 'flex'; // Show loader before rendering
+                setTimeout(() => init3DModel(model3DUrl), 1000); // Simulate a slight delay
             }
 
-            // Function to capture a snapshot from the Three.js canvas
-            function captureSnapshot() {
-                return new Promise((resolve, reject) => {
-                    if (!renderer) {
-                        reject("⚠️ Renderer is not initialized. Cannot capture snapshot.");
-                        return;
-                    }
-                    renderer.render(scene, camera);
-                    const imageUrl = renderer.domElement.toDataURL("image/png");
-                    resolve(imageUrl);
-                });
-            }
-
-            document.getElementById('save-face-adjustment').addEventListener('click', async function () {
-                const notes = document.getElementById('notes').value.trim();
-                if (!notes) {
-                    alert("⚠️ Por favor, ingresa notas antes de guardar.");
-                    return;
-                }
+            // ✅ Handle "Generar Modelo 3D" button click
+            document.getElementById('generate-model').addEventListener('click', async function () {
+                loaderOverlay.style.display = 'flex'; // Show loader immediately
 
                 try {
-                    const snapshot = await captureSnapshot();
+                    let response = await fetch(`/Patients/Generate3DModel/${patientId}`, { method: 'POST' });
+                    let data = await response.json();
 
-                    fetch('/Patients/SaveFaceAdjustment/' + patientId, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ snapshot, notes })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert("✅ Ajustes guardados con éxito! Redirigiendo al historial...");
-                            window.location.href = "/Patients/History/" + patientId;
-                        } else {
-                            alert("❌ Error al guardar los ajustes: " + data.message);
+                    if (!data.success) {
+                        alert("❌ Error: " + data.message);
+                        loaderOverlay.style.display = 'none'; // Hide loader on failure
+                        return;
+                    }
+
+                    let taskId = data.taskId;
+                    alert("✅ Task created! Waiting for 3D model...");
+
+                    let checkInterval = setInterval(async () => {
+                        let statusResponse = await fetch(`/Patients/CheckModelStatus/${taskId}/${patientId}`);
+                        let statusData = await statusResponse.json();
+
+                        if (statusData.success) {
+                            clearInterval(checkInterval);
+                            alert("✅ 3D model ready! Reloading...");
+                            location.reload();
+                        } else if (!statusData.pending) {
+                            clearInterval(checkInterval);
+                            alert("❌ Error: " + statusData.message);
+                            loaderOverlay.style.display = 'none'; // Hide loader on failure
                         }
-                    })
-                    .catch(error => console.error('❌ Error:', error));
-                } catch (snapshotError) {
-                    console.error('❌ Error capturing snapshot:', snapshotError);
+                    }, 5000);
+
+                } catch (error) {
+                    console.error("❌ Error:", error);
+                    loaderOverlay.style.display = 'none'; // Hide loader on failure
                 }
             });
         });
