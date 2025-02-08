@@ -12,82 +12,198 @@
 <h2>Ajustar Cara para @Model.Name</h2>
 
 <button id="generate-model" class="btn btn-primary">Generar Modelo 3D</button>
+<button id="capture-snapshot" class="btn btn-secondary" style="display: none;">Guardar Snapshot</button>
 <br />
-<div id="threejs-container" style="width: 100%; height: 600px; border: 1px solid #ddd;"></div>
+<div id="threejs-container" style="width: 100%; height: 600px; border: 1px solid #ddd; margin-top: 10px;"></div>
+
+<div id="adjustment-controls" style="margin-top: 20px;">
+    <h4>Controles de Ajuste</h4>
+    <div class="form-group">
+        <label for="cheeks-slider">Cachetes:</label>
+        <input type="range" id="cheeks-slider" min="-10" max="10" step="1" />
+    </div>
+    <div class="form-group">
+        <label for="chin-slider">Menton:</label>
+        <input type="range" id="chin-slider" min="-10" max="10" step="1" />
+    </div>
+    <div class="form-group">
+        <label for="nose-slider">Nariz:</label>
+        <input type="range" id="nose-slider" min="-10" max="10" step="1" />
+    </div>
+    <div class="form-group">
+        <label for="notes">Notas:</label>
+        <textarea id="notes" class="form-control" rows="3" placeholder="Escribe tus notas aquí..."></textarea>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .loader-overlay {
+            position: fixed;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #3498db;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+        }
+
+        @@keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+}
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const container = document.getElementById('threejs-container');
             const loaderOverlay = document.getElementById('page-loader');
-            let patientId = @(Model?.Id ?? 0);
-            let model3DUrl = "@(Model.Model3DUrl ?? "")".trim();
-            let taskId = "@(Model.MeshyTaskId ?? "")".trim();
+            const snapshotButton = document.getElementById('capture-snapshot');
+            const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+            let renderer, scene, camera, controls;
+
+            const patientId = @(Model?.Id ?? 0); // Ensure patientId is valid
+            const model3DUrl = "@(Model.Model3DUrl ?? "")".trim();
 
             function init3DModel(url) {
+                container.innerHTML = ""; // Clear previous content
+
                 if (!url || url.trim() === "") {
-                    container.innerHTML = "<p style='color:red'>⚠️ No se encontró el modelo 3D.</p>";
-                    loaderOverlay.style.display = 'none';
+                    container.innerHTML = "<p style='color:red'>⚠️ No se encontró el modelo 3D. Por favor, genera uno primero.</p>";
+                    loaderOverlay.style.display = 'none'; // Hide loader
                     return;
                 }
 
-                let scene = new THREE.Scene();
-                let camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-                camera.position.z = 3;
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+                camera.position.set(0, 1, 3);
 
-                let renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(container.clientWidth, container.clientHeight);
                 renderer.setPixelRatio(window.devicePixelRatio);
                 container.appendChild(renderer.domElement);
 
+                // Add lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(5, 10, 7);
+                scene.add(directionalLight);
+
+                // Load GLTF Model
                 const loader = new THREE.GLTFLoader();
-                loader.load(url, function (gltf) {
-                    scene.add(gltf.scene);
-                    function animate() {
-                        requestAnimationFrame(animate);
-                        renderer.render(scene, camera);
-                    }
+                loader.load(proxyUrl + url, function (gltf) {
+                    const model = gltf.scene;
+                    model.scale.set(1, 1, 1);
+                    scene.add(model);
+
+                    snapshotButton.style.display = 'block'; // Show snapshot button
+                    loaderOverlay.style.display = 'none'; // Hide loader
+
                     animate();
-                    loaderOverlay.style.display = 'none';
                 }, undefined, function (error) {
                     console.error("❌ Error loading model:", error);
-                    loaderOverlay.style.display = 'none';
+                    container.innerHTML = "<p style='color:red'>⚠️ Error cargando el modelo 3D.</p>";
+                    loaderOverlay.style.display = 'none'; // Hide loader on error
+                });
+
+                // Orbit Controls
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+
+                window.addEventListener('resize', () => {
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
                 });
             }
 
-            async function checkExistingTask() {
-                if (taskId) {
-                    console.log("Checking existing task...");
-                    let response = await fetch(`/Patients/CheckModelStatus/${taskId}/${patientId}`);
-                    let data = await response.json();
-                    if (data.success) {
-                        model3DUrl = data.modelUrl;
-                        init3DModel(model3DUrl);
-                    }
-                }
+            function animate() {
+                requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+                controls.update();
             }
 
+            // Generate 3D Model
             document.getElementById('generate-model').addEventListener('click', async function () {
                 loaderOverlay.style.display = 'flex';
-                let response = await fetch(`/Patients/Generate3DModel/${patientId}`, { method: 'POST' });
-                let data = await response.json();
+
+                const response = await fetch(`/Patients/Generate3DModel/${patientId}`, { method: 'POST' });
+                const data = await response.json();
+
                 if (data.success) {
-                    taskId = data.taskId;
-                    alert("✅ 3D model task created!");
-                    checkExistingTask();
+                    const taskId = data.taskId;
+                    alert("✅ Task created! Waiting for 3D model...");
+
+                    // Poll for task completion
+                    const checkInterval = setInterval(async () => {
+                        const statusResponse = await fetch(`/Patients/CheckModelStatus/${taskId}/${patientId}`);
+                        const statusData = await statusResponse.json();
+
+                        if (statusData.success) {
+                            clearInterval(checkInterval);
+                            alert("✅ 3D model ready! Loading...");
+                            init3DModel(statusData.modelUrl);
+                        }
+                    }, 5000);
                 } else {
-                    alert("❌ Error: " + data.message);
                     loaderOverlay.style.display = 'none';
+                    alert("❌ " + data.message);
                 }
             });
 
+            // Capture Snapshot
+            snapshotButton.addEventListener('click', async function () {
+                const dataUrl = renderer.domElement.toDataURL("image/png");
+                const notes = document.getElementById('notes').value;
+
+                const requestBody = {
+                    Snapshot: dataUrl,
+                    Notes: notes
+                };
+
+                const response = await fetch(`/Patients/SaveFaceAdjustment/${patientId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert("✅ Snapshot saved successfully!");
+                } else {
+                    alert("❌ Error saving snapshot.");
+                }
+            });
+
+            // Initialize existing model
             if (model3DUrl) {
+                loaderOverlay.style.display = 'flex';
                 init3DModel(model3DUrl);
-            } else {
-                checkExistingTask();
             }
         });
     </script>
