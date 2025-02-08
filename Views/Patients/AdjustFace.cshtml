@@ -81,7 +81,6 @@
             const container = document.getElementById('threejs-container');
             const loaderOverlay = document.getElementById('page-loader');
             const snapshotButton = document.getElementById('capture-snapshot');
-            const proxyUrl = "https://cors-anywhere.herokuapp.com/";
             let renderer, scene, camera, controls;
 
             const patientId = @(Model?.Id ?? 0); // Ensure patientId is valid
@@ -115,7 +114,7 @@
 
                 // Load GLTF Model
                 const loader = new THREE.GLTFLoader();
-                loader.load(proxyUrl + url, function (gltf) {
+                loader.load(url, function (gltf) {
                     const model = gltf.scene;
                     model.scale.set(1, 1, 1);
                     scene.add(model);
