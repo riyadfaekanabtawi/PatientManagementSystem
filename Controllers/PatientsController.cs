@@ -292,6 +292,21 @@ namespace PatientManagementSystem.Controllers
             }
         }
 
+        public async Task<IActionResult> History(int id, int? session_id)
+        {
+            if (session_id.HasValue)
+            {
+                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
+            }
+            var patient = await _context.Patients
+                .Include(p => p.AdjustmentHistory)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (patient == null) return NotFound();
+
+            return View(patient);
+        }
+
         [Route("Patients/Generate3DModel/{id}")]
         [HttpPost]
         public async Task<IActionResult> Generate3DModel(int id)
