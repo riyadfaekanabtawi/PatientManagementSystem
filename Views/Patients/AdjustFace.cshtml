@@ -60,8 +60,6 @@
             const loaderOverlay = document.getElementById('page-loader');
             let patientId = @(Model?.Id ?? 0); // Ensure patientId is valid
 
-            const proxyUrl = "https://cors-anywhere.herokuapp.com/"; // Public CORS proxy URL
-
             function init3DModel(url) {
                 container.innerHTML = ""; // Clear previous content
 
@@ -85,7 +83,7 @@
                 scene.add(light);
 
                 const loader = new THREE.GLTFLoader();
-                loader.load(proxyUrl + url, function (gltf) {
+                loader.load(url, function (gltf) {
                     const model = gltf.scene;
                     model.scale.set(1, 1, 1);
                     scene.add(model);
@@ -114,7 +112,6 @@
                 loaderOverlay.style.display = 'flex'; // Show loader immediately
 
                 try {
-                    console.log(`Fetching: /Patients/Generate3DModel/${patientId}`);
                     let response = await fetch(`/Patients/Generate3DModel/${patientId}`, { method: 'POST' });
 
                     if (!response.ok) {
@@ -147,7 +144,7 @@
                             clearInterval(checkInterval);
                             alert("✅ 3D model ready! Loading...");
 
-                            // Use the proxy to load the model
+                            // Load the model from S3
                             init3DModel(statusData.modelUrl);
                         } else if (!statusData.pending) {
                             clearInterval(checkInterval);

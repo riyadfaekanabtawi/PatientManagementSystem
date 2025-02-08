@@ -292,10 +292,27 @@ namespace PatientManagementSystem.Controllers
                     return Json(new { success = false, pending = true });
                 }
 
-                // Fetch the model URL directly for rendering
-                var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+                // Fetch the GLB file URL
+                var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
 
-                return Json(new { success = true, modelUrl });
+                // Download and upload to S3
+                var s3Key = $"models/patient_{id}_{Guid.NewGuid()}.glb";
+                var uploadSuccess = await UploadToS3(glbUrl, s3Key);
+                if (!uploadSuccess)
+                {
+                    return Json(new { success = false, message = "Failed to upload model to S3." });
+                }
+
+                // Update the patient record with the S3 URL
+                var patient = await _context.Patients.FindAsync(id);
+                if (patient != null)
+                {
+                    patient.Model3DUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
+                    _context.Update(patient);
+                    await _context.SaveChangesAsync();
+                }
+
+                return Json(new { success = true, modelUrl = patient?.Model3DUrl });
             }
             catch (Exception ex)
             {
@@ -303,8 +320,6 @@ namespace PatientManagementSystem.Controllers
                 return Json(new { success = false, message = "An error occurred while checking the 3D model status." });
             }
         }
-
-
 
         private bool PatientExists(int id)
         {
