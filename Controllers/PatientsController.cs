@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Amazon;
 using Amazon.S3;
 using Amazon.S3.Transfer;
+using System.Diagnostics;
 using PatientManagementSystem.Data;
 using PatientManagementSystem.Models;
 using PatientManagementSystem.Services;
