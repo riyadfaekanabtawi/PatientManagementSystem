@@ -79,104 +79,106 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const container = document.getElementById('threejs-container');
-            const loaderOverlay = document.getElementById('page-loader');
-            let model3DUrl = '@Model.Model3DUrl'.trim();
-            let patientId = @Model.Id;
-            let renderer, scene, camera;
+        const container = document.getElementById('threejs-container');
+        const loaderOverlay = document.getElementById('page-loader');
+        let patientId = @Model.Id;
 
-            function init3DModel(url) {
-                container.innerHTML = ""; // Clear previous content
+        // ✅ Fix potential syntax issues with Model3DUrl
+        let model3DUrl = "@(Model.Model3DUrl ?? "")".trim();
+        if (!model3DUrl || model3DUrl === "null") {
+            model3DUrl = ""; // Ensure it's an empty string if null
+        }
 
-                if (!url || url === "null" || url.trim() === "") {
-                    container.innerHTML = "<p style='color:red'>⚠️ No se encontró el modelo 3D. Por favor, genera uno primero.</p>";
-                    loaderOverlay.style.display = 'none'; // Hide loader
+        let renderer, scene, camera;
+
+        function init3DModel(url) {
+            container.innerHTML = ""; // Clear previous content
+
+            if (!url || url.trim() === "") {
+                container.innerHTML = "<p style='color:red'>⚠️ No se encontró el modelo 3D. Por favor, genera uno primero.</p>";
+                loaderOverlay.style.display = 'none'; // Hide loader
+                return;
+            }
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 3;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(10, 10, 10);
+            scene.add(light);
+
+            const loader = new THREE.GLTFLoader();
+            loader.load(url, function (gltf) {
+                const model = gltf.scene;
+                model.scale.set(1, 1, 1);
+                scene.add(model);
+
+                function animate() {
+                    requestAnimationFrame(animate);
+                    renderer.render(scene, camera);
+                }
+                animate();
+
+                loaderOverlay.style.display = 'none'; // ✅ Hide loader when model is fully rendered
+            });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+
+        // ✅ Show loader when generating 3D model
+        document.getElementById('generate-model').addEventListener('click', async function () {
+            loaderOverlay.style.display = 'flex'; // Show loader immediately
+
+            try {
+                let response = await fetch(`/Patients/Generate3DModel/${patientId}`, { method: 'POST' });
+                let data = await response.json();
+
+                if (!data.success) {
+                    alert("❌ Error: " + data.message);
+                    loaderOverlay.style.display = 'none'; // Hide loader on failure
                     return;
                 }
 
-                scene = new THREE.Scene();
-                camera = new THREE.PerspectiveCamera(
-                    75,
-                    container.clientWidth / container.clientHeight,
-                    0.1,
-                    1000
-                );
-                camera.position.z = 3;
+                let taskId = data.taskId;
+                alert("✅ Task created! Waiting for 3D model...");
 
-                renderer = new THREE.WebGLRenderer({ antialias: true });
-                renderer.setSize(container.clientWidth, container.clientHeight);
-                renderer.setPixelRatio(window.devicePixelRatio);
-                container.appendChild(renderer.domElement);
+                let checkInterval = setInterval(async () => {
+                    let statusResponse = await fetch(`/Patients/CheckModelStatus/${taskId}/${patientId}`);
+                    let statusData = await statusResponse.json();
 
-                const light = new THREE.DirectionalLight(0xffffff, 1);
-                light.position.set(10, 10, 10);
-                scene.add(light);
-
-                const loader = new THREE.GLTFLoader();
-                loader.load(url, function (gltf) {
-                    const model = gltf.scene;
-                    model.scale.set(1, 1, 1);
-                    scene.add(model);
-
-                    function animate() {
-                        requestAnimationFrame(animate);
-                        renderer.render(scene, camera);
-                    }
-                    animate();
-
-                    loaderOverlay.style.display = 'none'; // Hide loader when model is fully rendered
-                });
-
-                window.addEventListener('resize', () => {
-                    camera.aspect = container.clientWidth / container.clientHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(container.clientWidth, container.clientHeight);
-                });
-            }
-
-            // Load the 3D model if available
-            if (model3DUrl) {
-                loaderOverlay.style.display = 'flex'; // Show loader before rendering
-                setTimeout(() => init3DModel(model3DUrl), 1000); // Simulate a slight delay
-            }
-
-            // ✅ Handle "Generar Modelo 3D" button click
-            document.getElementById('generate-model').addEventListener('click', async function () {
-                loaderOverlay.style.display = 'flex'; // Show loader immediately
-
-                try {
-                    let response = await fetch(`/Patients/Generate3DModel/${patientId}`, { method: 'POST' });
-                    let data = await response.json();
-
-                    if (!data.success) {
-                        alert("❌ Error: " + data.message);
+                    if (statusData.success) {
+                        clearInterval(checkInterval);
+                        alert("✅ 3D model ready! Reloading...");
+                        location.reload();
+                    } else if (!statusData.pending) {
+                        clearInterval(checkInterval);
+                        alert("❌ Error: " + statusData.message);
                         loaderOverlay.style.display = 'none'; // Hide loader on failure
-                        return;
                     }
+                }, 5000);
 
-                    let taskId = data.taskId;
-                    alert("✅ Task created! Waiting for 3D model...");
-
-                    let checkInterval = setInterval(async () => {
-                        let statusResponse = await fetch(`/Patients/CheckModelStatus/${taskId}/${patientId}`);
-                        let statusData = await statusResponse.json();
-
-                        if (statusData.success) {
-                            clearInterval(checkInterval);
-                            alert("✅ 3D model ready! Reloading...");
-                            location.reload();
-                        } else if (!statusData.pending) {
-                            clearInterval(checkInterval);
-                            alert("❌ Error: " + statusData.message);
-                            loaderOverlay.style.display = 'none'; // Hide loader on failure
-                        }
-                    }, 5000);
-
-                } catch (error) {
-                    console.error("❌ Error:", error);
-                    loaderOverlay.style.display = 'none'; // Hide loader on failure
-                }
-            });
+            } catch (error) {
+                console.error("❌ Error:", error);
+                loaderOverlay.style.display = 'none'; // Hide loader on failure
+            }
         });
+
+        // ✅ Ensure loader stays until model is fully rendered
+        if (model3DUrl) {
+            loaderOverlay.style.display = 'flex'; // Show loader before rendering
+            setTimeout(() => init3DModel(model3DUrl), 1000); // Delay to ensure it's fully loaded
+        }
+    });
+
     </script>
 }
