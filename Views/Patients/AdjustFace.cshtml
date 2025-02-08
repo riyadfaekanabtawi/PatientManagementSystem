@@ -129,6 +129,7 @@
                     alert("✅ Task created! Waiting for 3D model...");
 
                     let checkInterval = setInterval(async () => {
+                        console.log("Checking Task progress...")
                         let statusResponse = await fetch(`/Patients/CheckModelStatus/${taskId}/${patientId}`);
                         if (!statusResponse.ok) {
                             console.error("❌ Fetch failed:", statusResponse.status, statusResponse.statusText);

@@ -268,7 +268,7 @@ namespace PatientManagementSystem.Controllers
         }
 
         [Route("Patients/CheckModelStatus/{taskId}/{id}")]
-        [HttpGet("CheckModelStatus/{taskId}/{id}")]
+        [HttpGet]
         public async Task<IActionResult> CheckModelStatus(string taskId, int id)
         {
             try
@@ -288,24 +288,14 @@ namespace PatientManagementSystem.Controllers
                 var status = result.GetProperty("status").GetString();
 
                 if (status != "SUCCEEDED")
-                    return Json(new { success = false, pending = true });
-
-                var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
-                var s3Key = $"models/patient_{id}.glb";
-
-                var uploadSuccess = await UploadToS3(modelUrl, s3Key);
-                if (!uploadSuccess)
-                    return Json(new { success = false, message = "Failed to upload model to S3." });
-
-                var patient = await _context.Patients.FindAsync(id);
-                if (patient != null)
                 {
-                    patient.Model3DUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
-                    _context.Update(patient);
-                    await _context.SaveChangesAsync();
+                    return Json(new { success = false, pending = true });
                 }
 
-                return Json(new { success = true, modelUrl = patient?.Model3DUrl });
+                // Fetch the model URL directly for rendering
+                var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+
+                return Json(new { success = true, modelUrl });
             }
             catch (Exception ex)
             {
@@ -313,6 +303,7 @@ namespace PatientManagementSystem.Controllers
                 return Json(new { success = false, message = "An error occurred while checking the 3D model status." });
             }
         }
+
 
 
         private bool PatientExists(int id)
