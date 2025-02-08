@@ -140,6 +140,7 @@
         loaderOverlay.style.display = 'flex'; // Show loader immediately
 
         try {
+            console.log(`Fetching: /Patients/Generate3DModel/${patientId}`);
             let response = await fetch(`/Patients/Generate3DModel/${patientId}`, { method: 'POST' });
 
             if (!response.ok) {
@@ -164,6 +165,7 @@
 
                 // Polling logic remains the same
                 let checkInterval = setInterval(async () => {
+                    console.log(`Polling: /Patients/CheckModelStatus/${taskId}/${patientId}`);
                     let statusResponse = await fetch(`/Patients/CheckModelStatus/${taskId}/${patientId}`);
                     if (!statusResponse.ok) {
                         console.error("❌ Fetch failed:", statusResponse.status, statusResponse.statusText);
