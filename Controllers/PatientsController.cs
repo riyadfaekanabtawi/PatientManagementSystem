@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -137,6 +136,99 @@ namespace PatientManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        public IActionResult AdjustFace(int id)
+        {
+            var patient = _context.Patients.FirstOrDefault(p => p.Id == id);
+            if (patient == null)
+            {
+                return NotFound("Patient not found.");
+            }
+
+            return View(patient);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SaveFaceAdjustment(int id, [FromBody] FaceAdjustmentRequest request)
+        {
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null) return NotFound();
+
+            var fileName = $"adjustments/{id}_{DateTime.UtcNow.Ticks}.png";
+
+            using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
+            {
+                var uploadRequest = new TransferUtilityUploadRequest
+                {
+                    InputStream = stream,
+                    BucketName = S3BucketName,
+                    Key = fileName,
+                    ContentType = "image/png",
+                    CannedACL = S3CannedACL.PublicRead
+                };
+
+                var transferUtility = new TransferUtility(_s3Client);
+                await transferUtility.UploadAsync(uploadRequest);
+            }
+
+            var snapshotUrl = $"https://{S3BucketName}.s3.amazonaws.com/{fileName}";
+
+            var history = new FaceAdjustmentHistory
+            {
+                PatientId = id,
+                AdjustedImageUrl = snapshotUrl,
+                Notes = request.Notes,
+                AdjustmentDate = DateTime.UtcNow
+            };
+
+            _context.FaceAdjustmentHistories.Add(history);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+        [HttpPost("Generate3DModel/{id}")]
+        public async Task<IActionResult> Generate3DModel(int id)
+        {
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null || string.IsNullOrEmpty(patient.FrontImageUrl))
+                return Json(new { success = false, message = "Invalid patient or missing front image." });
+
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
+
+            var requestBody = new { image_url = patient.FrontImageUrl, enable_pbr = true, should_remesh = true, should_texture = true };
+            var response = await _httpClient.PostAsync("https://api.meshy.ai/openapi/v1/image-to-3d",
+                new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json"));
+
+            if (!response.IsSuccessStatusCode) return Json(new { success = false, message = "Failed to create 3D task" });
+
+            var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
+            return Json(new { success = true, taskId = result.GetProperty("result").GetString() });
+        }
+
+        [HttpGet("CheckModelStatus/{taskId}/{id}")]
+        public async Task<IActionResult> CheckModelStatus(string taskId, int id)
+        {
+            var response = await _httpClient.GetAsync($"https://api.meshy.ai/openapi/v1/image-to-3d/{taskId}");
+            if (!response.IsSuccessStatusCode) return Json(new { success = false, message = "Failed to fetch 3D model status" });
+
+            var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
+            if (result.GetProperty("status").GetString() != "SUCCEEDED") return Json(new { success = false, pending = true });
+
+            var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+            var s3Key = $"models/patient_{id}.glb";
+            if (!await UploadToS3(modelUrl, s3Key)) return Json(new { success = false, message = "Failed to upload model to S3" });
+
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient != null)
+            {
+                patient.Model3DUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
+                _context.Update(patient);
+                await _context.SaveChangesAsync();
+            }
+
+            return Json(new { success = true, modelUrl = patient?.Model3DUrl });
+        }
+
         private async Task<string> UploadFileToS3(IFormFile file)
         {
             if (file == null || file.Length == 0) return null;
@@ -161,67 +253,6 @@ namespace PatientManagementSystem.Controllers
             return $"https://{S3BucketName}.s3.amazonaws.com/{fileName}";
         }
 
-        // ✅ Step 1: Send Front Image to Meshy
-        [HttpPost("Generate3DModel/{id}")]
-        public async Task<IActionResult> Generate3DModel(int id)
-        {
-            var patient = await _context.Patients.FindAsync(id);
-            if (patient == null || string.IsNullOrEmpty(patient.FrontImageUrl))
-                return Json(new { success = false, message = "Invalid patient or missing front image." });
-
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
-
-            var requestBody = new
-            {
-                image_url = patient.FrontImageUrl,
-                enable_pbr = true,
-                should_remesh = true,
-                should_texture = true
-            };
-
-            var jsonRequest = JsonSerializer.Serialize(requestBody);
-            var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync("https://api.meshy.ai/openapi/v1/image-to-3d", content);
-            if (!response.IsSuccessStatusCode)
-                return Json(new { success = false, message = "Failed to create 3D task" });
-
-            var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
-            var taskId = result.GetProperty("result").GetString();
-
-            return Json(new { success = true, taskId });
-        }
-
-        [HttpGet("CheckModelStatus/{taskId}/{id}")]
-        public async Task<IActionResult> CheckModelStatus(string taskId, int id)
-        {
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
-
-            var response = await _httpClient.GetAsync($"https://api.meshy.ai/openapi/v1/image-to-3d/{taskId}");
-            if (!response.IsSuccessStatusCode)
-                return Json(new { success = false, message = "Failed to fetch 3D model status" });
-
-            var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
-            if (result.GetProperty("status").GetString() != "SUCCEEDED")
-                return Json(new { success = false, pending = true });
-
-            var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
-            var s3Key = $"models/patient_{id}.glb";
-
-            var uploadSuccess = await UploadToS3(modelUrl, s3Key);
-            if (!uploadSuccess) return Json(new { success = false, message = "Failed to upload model to S3" });
-
-            var patient = await _context.Patients.FindAsync(id);
-            if (patient != null)
-            {
-                patient.Model3DUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
-                _context.Update(patient);
-                await _context.SaveChangesAsync();
-            }
-
-            return Json(new { success = true, modelUrl = patient?.Model3DUrl });
-        }
-
         private async Task<bool> UploadToS3(string fileUrl, string key)
         {
             try
@@ -240,5 +271,6 @@ namespace PatientManagementSystem.Controllers
                 return false;
             }
         }
+
     }
 }
