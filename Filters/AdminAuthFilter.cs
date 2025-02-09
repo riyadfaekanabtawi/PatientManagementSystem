@@ -1,30 +1,41 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 
-public class AdminAuthFilter : ActionFilterAttribute
+public class AdminAuthFilter : IActionFilter
 {
     private readonly ILogger<AdminAuthFilter> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public AdminAuthFilter(ILogger<AdminAuthFilter> logger)
+    public AdminAuthFilter(ILogger<AdminAuthFilter> logger, IHttpContextAccessor httpContextAccessor)
     {
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
-    public override void OnActionExecuting(ActionExecutingContext context)
+    public void OnActionExecuting(ActionExecutingContext context)
     {
-        var sessionValue = context.HttpContext.Session.GetString("AdminLoggedIn");
-        var cookies = context.HttpContext.Request.Headers["Cookie"];
+        var httpContext = _httpContextAccessor.HttpContext;
+        var adminSession = httpContext?.Session.GetString("AdminLoggedIn");
 
-        _logger.LogInformation($"[DEBUG] Cookies Received: {cookies}");
-        _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
-
-        if (string.IsNullOrEmpty(sessionValue))
+        if (string.IsNullOrEmpty(adminSession))
         {
+            _logger.LogWarning("Unauthorized access attempt detected. Redirecting to login.");
+
+            // Prevent infinite loop by allowing Login page
+            var path = httpContext?.Request.Path.Value?.ToLower();
+            if (path != null && (path.Contains("/admin/login") || path.Contains("/admin/logout")))
+            {
+                return;
+            }
+
             context.Result = new RedirectToActionResult("Login", "Admin", null);
         }
+    }
 
-        base.OnActionExecuting(context);
+    public void OnActionExecuted(ActionExecutedContext context)
+    {
+        // Do nothing after action executes
     }
 }
