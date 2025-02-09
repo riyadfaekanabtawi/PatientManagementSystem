@@ -162,6 +162,107 @@ namespace PatientManagementSystem.Controllers
             return View(patient);
         }
 
+
+        [HttpPost]
+        [Route("Patients/RemeshModel/{id}")]
+        public async Task<IActionResult> RemeshModel(int id)
+        {
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null || string.IsNullOrEmpty(patient.MeshyTaskId))
+            {
+                return Json(new { success = false, message = "No 3D model available to remesh." });
+            }
+
+            try
+            {
+                var requestBody = new
+                {
+                    input_task_id = patient.MeshyTaskId,
+                    target_formats = new[] { "glb" },
+                    topology = "quad",
+                    target_polycount = 50000,
+                    resize_height = 1.0,
+                    origin_at = "bottom"
+                };
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
+                var response = await httpClient.PostAsync(
+                    "https://api.meshy.ai/openapi/v1/remesh",
+                    new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json")
+                );
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Meshy Remesh API error: {errorContent}");
+                    return Json(new { success = false, message = "Failed to create remesh task." });
+                }
+
+                var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
+                var remeshTaskId = result.GetProperty("result").GetString();
+
+                // Update patient's remeshed task ID
+                patient.RemeshedTaskId = remeshTaskId;
+                _context.Update(patient);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, remeshTaskId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"❌ Exception in RemeshModel: {ex.Message}");
+                return Json(new { success = false, message = "An error occurred while creating the remesh task." });
+            }
+        }
+
+
+        [HttpGet]
+        [Route("Patients/CheckRemeshStatus/{remeshTaskId}/{id}")]
+        public async Task<IActionResult> CheckRemeshStatus(string remeshTaskId, int id)
+        {
+            try
+            {
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
+
+                var response = await httpClient.GetAsync($"https://api.meshy.ai/openapi/v1/remesh/{remeshTaskId}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Meshy Remesh Status API error: {errorContent}");
+                    return Json(new { success = false, message = "Failed to fetch remesh status." });
+                }
+
+                var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
+                var status = result.GetProperty("status").GetString();
+
+                if (status != "SUCCEEDED")
+                {
+                    return Json(new { success = false, pending = true });
+                }
+
+                // Fetch the remeshed model URL
+                var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+
+                // Update patient's 3D model URL
+                var patient = await _context.Patients.FindAsync(id);
+                if (patient != null)
+                {
+                    patient.Model3DUrl = modelUrl;
+                    _context.Update(patient);
+                    await _context.SaveChangesAsync();
+                }
+
+                return Json(new { success = true, modelUrl });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"❌ Exception in CheckRemeshStatus: {ex.Message}");
+                return Json(new { success = false, message = "An error occurred while checking remesh status." });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {

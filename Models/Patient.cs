@@ -28,11 +28,13 @@ namespace PatientManagementSystem.Models
         public string? FrontImageUrl { get; set; }
         public string? LeftImageUrl { get; set; }
         public string? RightImageUrl { get; set; }
-        public string? BackImageUrl { get; set; }  // ✅ Added BackImageUrl back
+        public string? BackImageUrl { get; set; }
+
         public string? Model3DUrl { get; set; }
         public string? MeshyTaskId { get; set; }
 
-        // ✅ Face Adjustment Properties
+        public string? RemeshedTaskId { get; set; }
+        
         public int? CheekAdjustment { get; set; }
         public int? ChinAdjustment { get; set; }
         public int? NoseAdjustment { get; set; }
