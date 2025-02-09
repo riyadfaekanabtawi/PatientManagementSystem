@@ -473,24 +473,35 @@ namespace PatientManagementSystem.Controllers
                 var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
                 var objectId = result.GetProperty("id").GetString();
 
+                // Upload the 3D model to S3
+                var s3Bucket = _configuration["AWS:BucketName"];
+                var s3Key = $"3dmodels/patient_{id}.glb";
+
+                if (!await UploadToS3(modelUrl, s3Key))
+                {
+                    return Json(new { success = false, message = "Failed to upload the 3D model to S3." });
+                }
+
+                var s3ModelUrl = $"https://{s3Bucket}.s3.amazonaws.com/{s3Key}";
+
                 // Update the patient record in the database
                 var patient = await _context.Patients.FindAsync(id);
                 if (patient != null)
                 {
-                    patient.Model3DUrl = modelUrl;
+                    patient.Model3DUrl = s3ModelUrl;
                     patient.ThreeDObjectId = objectId; // Save the object ID
                     await _context.SaveChangesAsync();
                 }
 
-                return Json(new { success = true, modelUrl });
+                return Json(new { success = true, modelUrl = s3ModelUrl });
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Exception in CheckModelStatus: {ex.Message}");
-                _logger.LogError(ex.StackTrace);
                 return Json(new { success = false, message = "An error occurred while checking the 3D model status." });
             }
         }
+
 
 
 
