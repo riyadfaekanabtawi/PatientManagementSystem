@@ -141,7 +141,7 @@
 
                     animate();
                 }, undefined, function (error) {
-                    console.error("❌ Error loading model:", error);
+                    console.error("❌ Error al cargar el modelo:", error);
                     container.innerHTML = "<p style='color:red'>⚠️ Error cargando el modelo 3D.</p>";
                     loaderOverlay.style.display = 'none'; // Hide loader on error
                 });
@@ -282,7 +282,7 @@
 
                         if (statusData.success) {
                             clearInterval(checkInterval);
-                            alert("✅ Remeshed model ready! Loading...");
+                            alert("✅ Retexturizado listo! Cargando...");
                             await init3DModel(statusData.modelUrl); // Re-render the 3D model
                         } else if (!statusData.pending) {
                             clearInterval(checkInterval);
@@ -298,4 +298,44 @@
             });
         });
     </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        function adjustFacePart(part, value) {
+            if (!window.mesh) return;
+            const position = window.mesh.geometry.attributes.position;
+            const boundingBox = window.mesh.geometry.boundingBox;
+
+            for (let i = 0; i < position.count; i++) {
+                let x = position.getX(i);
+                let y = position.getY(i);
+                let z = position.getZ(i);
+
+                if (part === "cheeks" && y > boundingBox.min.y + 0.2) {
+                    position.setX(i, x + value * 0.001);
+                }
+                if (part === "chin" && y < boundingBox.min.y + 0.2) {
+                    position.setY(i, y + value * 0.001);
+                }
+                if (part === "nose" && x > boundingBox.min.x + 0.1 && x < boundingBox.max.x - 0.1) {
+                    position.setZ(i, z + value * 0.002);
+                }
+            }
+
+            position.needsUpdate = true;
+        }
+
+        document.getElementById('cheeks-slider').addEventListener('input', function () {
+            adjustFacePart("cheeks", this.value);
+        });
+
+        document.getElementById('chin-slider').addEventListener('input', function () {
+            adjustFacePart("chin", this.value);
+        });
+
+        document.getElementById('nose-slider').addEventListener('input', function () {
+            adjustFacePart("nose", this.value);
+        });
+    });
+</script>
+
 }
