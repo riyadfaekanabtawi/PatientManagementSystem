@@ -233,6 +233,7 @@
             });
 
             // Initialize existing model
+           // Initialize existing model or remeshed model
             if (model3DUrl) {
                 loaderOverlay.style.display = 'flex';
                 init3DModel(model3DUrl);
@@ -240,13 +241,19 @@
                 loaderOverlay.style.display = 'flex';
 
                 // Fetch remeshed model status
-                const remeshStatusResponse = await fetch(`/Patients/CheckRemeshStatus/${remeshedTaskId}/${patientId}`);
-                const remeshStatusData = await remeshStatusResponse.json();
+                try {
+                    const remeshStatusResponse = await fetch(`/Patients/CheckRemeshStatus/${remeshedTaskId}/${patientId}`);
+                    const remeshStatusData = await remeshStatusResponse.json();
 
-                if (remeshStatusData.success) {
-                    init3DModel(remeshStatusData.modelUrl); // Render remeshed model
-                } else {
-                    alert("❌ Could not load remeshed model.");
+                    if (remeshStatusData.success) {
+                        init3DModel(remeshStatusData.modelUrl); // Render remeshed model
+                    } else {
+                        alert("❌ Could not load remeshed model.");
+                        loaderOverlay.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error("❌ Error fetching remeshed model status:", error);
+                    alert("❌ An error occurred while loading the remeshed model.");
                     loaderOverlay.style.display = 'none';
                 }
             }
