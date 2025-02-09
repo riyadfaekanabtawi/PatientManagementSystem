@@ -299,43 +299,58 @@
         });
     </script>
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        function adjustFacePart(part, value) {
-            if (!window.mesh) return;
-            const position = window.mesh.geometry.attributes.position;
-            const boundingBox = window.mesh.geometry.boundingBox;
+        document.addEventListener('DOMContentLoaded', function () {
+            function adjustFacePart(part, value) {
+                if (!window.mesh || !window.mesh.geometry) return;
+                
+                const position = window.mesh.geometry.attributes.position;
+                const boundingBox = window.mesh.geometry.boundingBox;
 
-            for (let i = 0; i < position.count; i++) {
-                let x = position.getX(i);
-                let y = position.getY(i);
-                let z = position.getZ(i);
+                for (let i = 0; i < position.count; i++) {
+                    let x = position.getX(i);
+                    let y = position.getY(i);
+                    let z = position.getZ(i);
 
-                if (part === "cheeks" && y > boundingBox.min.y + 0.2) {
-                    position.setX(i, x + value * 0.001);
+                    // Adjust cheeks (expand/contract)
+                    if (part === "cheeks" && y > boundingBox.min.y + 0.2 && y < boundingBox.max.y - 0.2) {
+                        position.setX(i, x + value * 0.002);
+                    }
+
+                    // Adjust chin (move up/down)
+                    if (part === "chin" && y < boundingBox.min.y + 0.2) {
+                        position.setY(i, y + value * 0.002);
+                    }
+
+                    // Adjust nose (move forward/backward)
+                    if (part === "nose" && x > boundingBox.min.x + 0.1 && x < boundingBox.max.x - 0.1 && y > boundingBox.min.y + 0.5) {
+                        position.setZ(i, z + value * 0.002);
+                    }
                 }
-                if (part === "chin" && y < boundingBox.min.y + 0.2) {
-                    position.setY(i, y + value * 0.001);
-                }
-                if (part === "nose" && x > boundingBox.min.x + 0.1 && x < boundingBox.max.x - 0.1) {
-                    position.setZ(i, z + value * 0.002);
-                }
+
+                position.needsUpdate = true;
+                window.mesh.geometry.computeVertexNormals(); // Recalculate normals for better visuals
             }
 
-            position.needsUpdate = true;
+            // Event Listeners for Sliders
+            document.getElementById('cheeks-slider').addEventListener('input', function () {
+                adjustFacePart("cheeks", parseFloat(this.value));
+            });
+
+            document.getElementById('chin-slider').addEventListener('input', function () {
+                adjustFacePart("chin", parseFloat(this.value));
+            });
+
+            document.getElementById('nose-slider').addEventListener('input', function () {
+                adjustFacePart("nose", parseFloat(this.value));
+            });
+        });
+
+        // Ensure mesh is globally accessible when model loads
+        function setMeshForEditing(mesh) {
+            window.mesh = mesh;
+            console.log("Mesh loaded and ready for editing:", mesh);
         }
+    </script>
 
-        document.getElementById('cheeks-slider').addEventListener('input', function () {
-            adjustFacePart("cheeks", this.value);
-        });
-
-        document.getElementById('chin-slider').addEventListener('input', function () {
-            adjustFacePart("chin", this.value);
-        });
-
-        document.getElementById('nose-slider').addEventListener('input', function () {
-            adjustFacePart("nose", this.value);
-        });
-    });
-</script>
 
 }
