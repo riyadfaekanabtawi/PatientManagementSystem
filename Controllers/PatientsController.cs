@@ -68,11 +68,50 @@ namespace PatientManagementSystem.Controllers
                 try
                 {
                     // Upload images to S3 and store URLs
-                    patient.FrontImageUrl = await UploadFileToS3(FrontImage.FirstOrDefault());
-                    patient.LeftImageUrl = await UploadFileToS3(LeftImage.FirstOrDefault());
-                    patient.RightImageUrl = await UploadFileToS3(RightImage.FirstOrDefault());
-                    patient.BackImageUrl = await UploadFileToS3(BackImage.FirstOrDefault());
+                    var front_file = FrontImage.FirstOrDefault();
 
+                    if (front_file != null)
+                    {
+                        patient.FrontImageUrl = await UploadFileToS3(front_file);
+
+                    } else {
+
+                        throw new ArgumentNullException(nameof(front_file), "File cannot be null");
+
+                    }
+
+                    var left_image = LeftImage.FirstOrDefault();
+                    if (left_image != null)
+                    {
+                        patient.LeftImageUrl = await UploadFileToS3(left_image);
+
+                    } else {
+
+                        throw new ArgumentNullException(nameof(left_image), "File cannot be null");
+
+                    }
+
+                    var right_image = LeftImage.FirstOrDefault();
+                    if (right_image != null)
+                    {
+                        patient.RightImageUrl = await UploadFileToS3(right_image);
+
+                    } else {
+
+                        throw new ArgumentNullException(nameof(right_image), "File cannot be null");
+
+                    }
+
+                    var back_image = BackImage.FirstOrDefault();
+                    if (back_image != null)
+                    {
+                        patient.BackImageUrl = await UploadFileToS3(back_image);
+
+                    } else {
+
+                        throw new ArgumentNullException(nameof(back_image), "File cannot be null");
+                    }
+                    
                     // Save patient to database
                     _context.Add(patient);
                     await _context.SaveChangesAsync();
@@ -118,17 +157,44 @@ namespace PatientManagementSystem.Controllers
                     }
 
                     // Only update the image if a new one is uploaded
-                    if (FrontImage.Any()) 
-                        existingPatient.FrontImageUrl = await UploadFileToS3(FrontImage.FirstOrDefault());
+                    
+                    if (FrontImage.Any())
+                    {
+                        var frontImageFile = FrontImage.FirstOrDefault();
+                        if (frontImageFile != null)
+                        {
+                            existingPatient.FrontImageUrl = await UploadFileToS3(frontImageFile);
+                        }
+                    }
 
-                    if (LeftImage.Any()) 
-                        existingPatient.LeftImageUrl = await UploadFileToS3(LeftImage.FirstOrDefault());
+                    if (LeftImage.Any())
+                    {
+                        var leftImageFile = LeftImage.FirstOrDefault();
+                        if (leftImageFile != null)
+                        {
+                            existingPatient.LeftImageUrl = await UploadFileToS3(leftImageFile);
+                        }
+                    }
 
-                    if (RightImage.Any()) 
-                        existingPatient.RightImageUrl = await UploadFileToS3(RightImage.FirstOrDefault());
+                    if (RightImage.Any())
+                    {
+                        var rightImageFile = RightImage.FirstOrDefault();
+                        if (rightImageFile != null)
+                        {
+                            existingPatient.RightImageUrl = await UploadFileToS3(rightImageFile);
+                        }
+                    }
 
-                    if (BackImage.Any()) 
-                        existingPatient.BackImageUrl = await UploadFileToS3(BackImage.FirstOrDefault());
+                    if (BackImage.Any())
+                    {
+                        var backImageFile = BackImage.FirstOrDefault();
+                        if (backImageFile != null)
+                        {
+                            existingPatient.BackImageUrl = await UploadFileToS3(backImageFile);
+                        }
+                    }
+
+
 
                     // Update other patient details
                     existingPatient.Name = patient.Name;
@@ -455,6 +521,11 @@ namespace PatientManagementSystem.Controllers
                 var s3Bucket = _configuration["AWS:BucketName"];
                 var s3Key = $"3dmodels/patient_{id}.glb";
 
+                if (string.IsNullOrEmpty(modelUrl) || string.IsNullOrEmpty(s3Key))
+                {
+                    return Json(new { success = false, message = "Model URL or S3 key is missing." });
+                }
+
                 if (!await UploadToS3(modelUrl, s3Key))
                 {
                     return Json(new { success = false, message = "Failed to upload the 3D model to S3." });
@@ -488,7 +559,7 @@ namespace PatientManagementSystem.Controllers
 
         private async Task<string> UploadFileToS3(IFormFile file)
         {
-            if (file == null || file.Length == 0) return null;
+            if (file == null || file.Length == 0) return "null";
 
             var awsAccessKey = _configuration["AWS:AccessKey"];
             var awsSecretKey = _configuration["AWS:SecretKey"];

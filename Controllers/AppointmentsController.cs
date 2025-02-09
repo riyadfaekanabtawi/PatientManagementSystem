@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PatientManagementSystem.Data;
 using PatientManagementSystem.Models;
-using Microsoft.EntityFrameworkCore;
+
 
 namespace PatientManagementSystem.Controllers
 {
@@ -33,13 +33,24 @@ namespace PatientManagementSystem.Controllers
             if (patientId.HasValue)
                 appointments = appointments.Where(a => a.PatientId == patientId);
 
-            var appointmentData = await appointments.Select(a => new
+            var appointmentData = await appointments
+                .Select(a => new
+                {
+                    a.AppointmentDateTime,
+                    Patient = a.Patient, // Keep Patient reference for now
+                    a.Notes
+                })
+                .ToListAsync(); // Fetch data from DB first
+
+            // Apply null checks in memory (EF issue fixed)
+            var safeAppointmentData = appointmentData.Select(a => new
             {
                 a.AppointmentDateTime,
-                PatientName = a.Patient.Name,
-                PatientEmail = a.Patient.Email,
+                PatientName = a.Patient != null ? a.Patient.Name : "Unknown",
+                PatientEmail = a.Patient != null ? a.Patient.Email : "Unknown",
                 a.Notes
-            }).ToListAsync();
+            }).ToList();
+
 
             ViewData["Appointments"] = System.Text.Json.JsonSerializer.Serialize(appointmentData);
 

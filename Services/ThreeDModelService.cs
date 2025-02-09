@@ -40,7 +40,7 @@ namespace PatientManagementSystem.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogError($"❌ 3D Model API failed: {response.StatusCode} {response.ReasonPhrase}");
-                    return null;
+                    return "null";
                 }
 
                 var responseData = await response.Content.ReadAsStringAsync();
@@ -52,25 +52,25 @@ namespace PatientManagementSystem.Services
                 if (jsonResponse == null)
                 {
                     _logger.LogError("❌ API response was null.");
-                    return null;
+                    return "null";
                 }
 
                 _logger.LogInformation($"🔍 JSON Keys Available: {string.Join(", ", jsonResponse.Keys)}");
 
                 if (jsonResponse.ContainsKey("modelFileUrl"))
                 {
-                    string modelFileUrl = jsonResponse["modelFileUrl"].GetString();
+                    string modelFileUrl = jsonResponse["modelFileUrl"].GetString() ?? "";
                     _logger.LogInformation($"✅ Found modelFileUrl: {modelFileUrl}");
                     return modelFileUrl;
                 }
 
                 _logger.LogError("❌ API response did not contain 'modelFileUrl'.");
-                return null;
+                return "null";
             }
             catch (Exception ex)
             {
                 _logger.LogError($"❌ Exception calling 3D Model API: {ex.Message}");
-                return null;
+                return "null";
             }
         }
     }

@@ -100,8 +100,9 @@
             let renderer, scene, camera, controls;
 
             const patientId = @(Model?.Id ?? 0); // Ensure patientId is valid
-            const model3DUrl = "@(Model.Model3DUrl ?? "")".trim();
-            const remeshedTaskId = "@(Model.RemeshedTaskId ?? "")".trim();
+            const model3DUrl = "@(Model?.Model3DUrl ?? "")".trim();
+            const remeshedTaskId = "@(Model?.RemeshedTaskId ?? "")".trim();
+
 
             async function init3DModel(url) {
                 container.innerHTML = ""; // Clear previous content
