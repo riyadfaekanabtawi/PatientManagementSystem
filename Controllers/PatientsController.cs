@@ -455,7 +455,7 @@ namespace PatientManagementSystem.Controllers
                     topology = "quad",
                     target_polycount = 300000,
                     should_remesh = true,
-                    should_texture = true,
+                    enable_pbr = true,
                     should_texture = true,
                     symmetry_mode = "auto",
                     texture_prompt = "High-quality realistic texture with accurate facial details"
