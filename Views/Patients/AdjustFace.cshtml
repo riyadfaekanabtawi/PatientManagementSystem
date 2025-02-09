@@ -198,8 +198,9 @@
                     });
 
                     if (!response.ok) {
-                        console.error("❌ Fetch failed:", response.status, response.statusText);
-                        alert("❌ Error al guardar el snapshot.");
+                        const errorText = await response.text();
+                        console.error("❌ Fetch failed:", response.status, response.statusText, errorText);
+                        alert(`❌ Error al guardar el snapshot. Detalles: ${response.statusText}`);
                         return;
                     }
 

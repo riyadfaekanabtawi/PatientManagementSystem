@@ -228,6 +228,8 @@ namespace PatientManagementSystem.Controllers
             return $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
         }
 
+        
+        [Route("Patients/SaveFaceAdjustment/{id}")]
         [HttpPost]
         public async Task<IActionResult> SaveFaceAdjustment(int id, [FromBody] FaceAdjustmentRequest request)
         {
