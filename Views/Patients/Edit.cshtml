@@ -33,91 +33,68 @@
                             <input asp-for="DateOfBirth" class="form-control" type="date" />
                             <span asp-validation-for="DateOfBirth" class="text-danger"></span>
                         </div>
-
-                      
                     </div>
 
                     <div class="col-md-6">
-                      <!-- Email -->
+                        <!-- Email -->
                         <div class="mb-3">
                             <label asp-for="Email" class="form-label">Email</label>
                             <input asp-for="Email" class="form-control" placeholder="Ingrese el email" />
                             <span asp-validation-for="Email" class="text-danger"></span>
                         </div>
 
+                        <!-- Contact -->
                         <div class="mb-3">
                             <label asp-for="Contact" class="form-label">Contacto</label>
                             <input asp-for="Contact" class="form-control" placeholder="Ingrese el número de contacto" />
                             <span asp-validation-for="Contact" class="text-danger"></span>
                         </div>
                     </div>
-                   
                 </div>
 
                 <!-- Images Section -->
                 <div class="row">
-                    <div class="col-md-3">
-                        <!-- Left Image -->
-                        <div class="mb-3">
-                            <label for="LeftImage" class="form-label">Imagen Izquierda</label>
-                            @if (Model != null && !string.IsNullOrEmpty(Model.LeftImageUrl))
-                            {
-                                <div class="mb-2">
-                                    <img src="@Model.LeftImageUrl" alt="Left Image" class="img-thumbnail rounded-circle" style="width: 100px; height: 100px;" />
-                                </div>
-                            }
-                            <input type="file" name="LeftImage" class="form-control" />
+                    <!-- Front Image -->
+                    <div class="col-md-3 text-center">
+                        <label for="FrontImage" class="form-label">Imagen de Frente</label>
+                        <div class="mb-2">
+                            <img id="previewFront" src="@Model?.FrontImageUrl" alt="Front Image" class="img-preview rounded-circle shadow-sm" style="width: 120px; height: 120px; object-fit: cover;" />
                         </div>
+                        <input type="file" name="FrontImage" class="form-control" onchange="previewImage(event, 'previewFront')" />
                     </div>
 
-                    
-
-                    <div class="col-md-3">
-                        <!-- Front Image -->
-                        <div class="mb-3">
-                            <label for="FrontImage" class="form-label">Imagen de Frente</label>
-                            @if (Model != null && !string.IsNullOrEmpty(Model.FrontImageUrl))
-                            {
-                                <div class="mb-2">
-                                    <img src="@Model.FrontImageUrl" alt="Front Image" class="img-thumbnail rounded-circle" style="width: 100px; height: 100px;" />
-                                </div>
-                            }
-                            <input type="file" name="FrontImage" class="form-control" />
+                    <!-- Left Image -->
+                    <div class="col-md-3 text-center">
+                        <label for="LeftImage" class="form-label">Imagen Izquierda</label>
+                        <div class="mb-2">
+                            <img id="previewLeft" src="@Model?.LeftImageUrl" alt="Left Image" class="img-preview rounded-circle shadow-sm" style="width: 120px; height: 120px; object-fit: cover;" />
                         </div>
+                        <input type="file" name="LeftImage" class="form-control" onchange="previewImage(event, 'previewLeft')" />
                     </div>
 
-                    <div class="col-md-3">
-                        <!-- Right Image -->
-                        <div class="mb-3">
-                            <label for="RightImage" class="form-label">Imagen Derecha</label>
-                            @if (Model != null && !string.IsNullOrEmpty(Model.RightImageUrl))
-                            {
-                                <div class="mb-2">
-                                    <img src="@Model.RightImageUrl" alt="Right Image" class="img-thumbnail rounded-circle" style="width: 100px; height: 100px;" />
-                                </div>
-                            }
-                            <input type="file" name="RightImage" class="form-control" />
+                    <!-- Right Image -->
+                    <div class="col-md-3 text-center">
+                        <label for="RightImage" class="form-label">Imagen Derecha</label>
+                        <div class="mb-2">
+                            <img id="previewRight" src="@Model?.RightImageUrl" alt="Right Image" class="img-preview rounded-circle shadow-sm" style="width: 120px; height: 120px; object-fit: cover;" />
                         </div>
+                        <input type="file" name="RightImage" class="form-control" onchange="previewImage(event, 'previewRight')" />
                     </div>
-                    <div class="col-md-3">
-                        <!-- Back Image -->
-                        <div class="mb-3">
-                            <label for="BackImage" class="form-label">Imagen Trasera</label>
-                            @if (Model != null && !string.IsNullOrEmpty(Model.BackImageUrl))
-                            {
-                                <div class="mb-2">
-                                    <img src="@Model.BackImageUrl" alt="Back Image" class="img-thumbnail rounded-circle" style="width: 100px; height: 100px;" />
-                                </div>
-                            }
-                            <input type="file" name="BackImage" class="form-control" />
+
+                    <!-- Back Image -->
+                    <div class="col-md-3 text-center">
+                        <label for="BackImage" class="form-label">Imagen Trasera</label>
+                        <div class="mb-2">
+                            <img id="previewBack" src="@Model?.BackImageUrl" alt="Back Image" class="img-preview rounded-circle shadow-sm" style="width: 120px; height: 120px; object-fit: cover;" />
                         </div>
+                        <input type="file" name="BackImage" class="form-control" onchange="previewImage(event, 'previewBack')" />
                     </div>
                 </div>
 
                 <!-- Submit and Back Buttons -->
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between mt-3">
                     <input type="submit" value="Guardar" class="btn btn-primary" />
-                    <a asp-action="Index" class="btn btn-secondary"> Listado</a>
+                    <a asp-action="Index" class="btn btn-secondary"> Volver al Listado</a>
                 </div>
             </form>
         </div>
@@ -125,5 +102,26 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+
+    <script>
+        function previewImage(event, previewId) {
+            var input = event.target;
+            var preview = document.getElementById(previewId);
+
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    preview.classList.add("img-fluid", "rounded-circle", "shadow-sm");
+                    preview.style.width = "120px";
+                    preview.style.height = "120px";
+                    preview.style.objectFit = "cover";
+                };
+
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
 }
