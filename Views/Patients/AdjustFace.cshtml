@@ -137,6 +137,16 @@
                     model.scale.set(1, 1, 1);
                     scene.add(model);
 
+                    // Get the first mesh in the model (assuming it's the face)
+                    model.traverse((obj) => {
+                        if (obj.isMesh) {
+                            window.mesh = obj; // Make mesh globally accessible
+                            obj.geometry.computeVertexNormals();
+                            obj.geometry.computeBoundingBox();
+                            console.log("Mesh loaded and ready for modifications");
+                        }
+                    });
+
                     snapshotButton.style.display = 'block'; // Show snapshot button
                     loaderOverlay.style.display = 'none'; // Hide loader
 
