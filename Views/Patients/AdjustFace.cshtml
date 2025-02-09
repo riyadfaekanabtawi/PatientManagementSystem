@@ -91,17 +91,19 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
             const container = document.getElementById('threejs-container');
             const loaderOverlay = document.getElementById('page-loader');
             const snapshotButton = document.getElementById('capture-snapshot');
             const notesField = document.getElementById('notes');
+            const retextureButton = document.getElementById('retexture-model');
             let renderer, scene, camera, controls;
 
             const patientId = @(Model?.Id ?? 0); // Ensure patientId is valid
             const model3DUrl = "@(Model.Model3DUrl ?? "")".trim();
+            const remeshedTaskId = "@(Model.RemeshedTaskId ?? "")".trim();
 
-            function init3DModel(url) {
+            async function init3DModel(url) {
                 container.innerHTML = ""; // Clear previous content
 
                 if (!url || url.trim() === "") {
@@ -232,11 +234,10 @@
                 }
             });
 
-            // Initialize existing model
-           // Initialize existing model or remeshed model
+            // Initialize existing model or remeshed model
             if (model3DUrl) {
                 loaderOverlay.style.display = 'flex';
-                init3DModel(model3DUrl);
+                await init3DModel(model3DUrl);
             } else if (remeshedTaskId) {
                 loaderOverlay.style.display = 'flex';
 
@@ -246,7 +247,7 @@
                     const remeshStatusData = await remeshStatusResponse.json();
 
                     if (remeshStatusData.success) {
-                        init3DModel(remeshStatusData.modelUrl); // Render remeshed model
+                        await init3DModel(remeshStatusData.modelUrl); // Render remeshed model
                     } else {
                         alert("❌ Could not load remeshed model.");
                         loaderOverlay.style.display = 'none';
@@ -257,44 +258,45 @@
                     loaderOverlay.style.display = 'none';
                 }
             }
-        });
 
-        document.getElementById('retexture-model').addEventListener('click', async function () {
-            loaderOverlay.style.display = 'flex'; // Show loader
+            // Re-texture / Remesh Model
+            retextureButton.addEventListener('click', async function () {
+                loaderOverlay.style.display = 'flex'; // Show loader
 
-            try {
-                const response = await fetch(`/Patients/RemeshModel/${patientId}`, { method: 'POST' });
-                const data = await response.json();
+                try {
+                    const response = await fetch(`/Patients/RemeshModel/${patientId}`, { method: 'POST' });
+                    const data = await response.json();
 
-                if (!data.success) {
-                    alert(`❌ ${data.message}`);
-                    loaderOverlay.style.display = 'none';
-                    return;
-                }
-
-                const remeshTaskId = data.remeshTaskId;
-                alert("✅ Remesh task created! Waiting for remeshed model...");
-
-                // Poll for remesh task completion
-                const checkInterval = setInterval(async () => {
-                    const statusResponse = await fetch(`/Patients/CheckRemeshStatus/${remeshTaskId}/${patientId}`);
-                    const statusData = await statusResponse.json();
-
-                    if (statusData.success) {
-                        clearInterval(checkInterval);
-                        alert("✅ Remeshed model ready! Loading...");
-                        init3DModel(statusData.modelUrl); // Re-render the 3D model
-                    } else if (!statusData.pending) {
-                        clearInterval(checkInterval);
-                        alert(`❌ ${statusData.message}`);
+                    if (!data.success) {
+                        alert(`❌ ${data.message}`);
                         loaderOverlay.style.display = 'none';
+                        return;
                     }
-                }, 5000);
-            } catch (error) {
-                console.error("❌ Error creating remesh task:", error);
-                alert("❌ An error occurred while creating the remesh task.");
-                loaderOverlay.style.display = 'none';
-            }
+
+                    const remeshTaskId = data.remeshTaskId;
+                    alert("✅ Remesh task created! Waiting for remeshed model...");
+
+                    // Poll for remesh task completion
+                    const checkInterval = setInterval(async () => {
+                        const statusResponse = await fetch(`/Patients/CheckRemeshStatus/${remeshTaskId}/${patientId}`);
+                        const statusData = await statusResponse.json();
+
+                        if (statusData.success) {
+                            clearInterval(checkInterval);
+                            alert("✅ Remeshed model ready! Loading...");
+                            await init3DModel(statusData.modelUrl); // Re-render the 3D model
+                        } else if (!statusData.pending) {
+                            clearInterval(checkInterval);
+                            alert(`❌ ${statusData.message}`);
+                            loaderOverlay.style.display = 'none';
+                        }
+                    }, 5000);
+                } catch (error) {
+                    console.error("❌ Error creating remesh task:", error);
+                    alert("❌ An error occurred while creating the remesh task.");
+                    loaderOverlay.style.display = 'none';
+                }
+            });
         });
     </script>
 }
