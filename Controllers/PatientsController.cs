@@ -238,11 +238,12 @@ namespace PatientManagementSystem.Controllers
 
             // Upload Snapshot to S3
             var fileName = $"adjustments/{id}_{DateTime.UtcNow.Ticks}.png";
+            var awsAccessKey = _configuration["AWS:AccessKey"];
+            var awsSecretKey = _configuration["AWS:SecretKey"];
+            var awsRegion = _configuration["AWS:Region"];
             var s3Bucket = _configuration["AWS:BucketName"];
 
             var s3Client = new AmazonS3Client(awsAccessKey, awsSecretKey, RegionEndpoint.GetBySystemName(awsRegion));
-
-            var fileName = $"patients/{Guid.NewGuid()}_{file.FileName}";
 
             using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
             {
@@ -251,7 +252,7 @@ namespace PatientManagementSystem.Controllers
                     InputStream = stream,
                     BucketName = s3Bucket,
                     Key = fileName,
-                    ContentType = file.ContentType,
+                    ContentType = "image/jpeg",
                     CannedACL = S3CannedACL.PublicRead
                 };
 
