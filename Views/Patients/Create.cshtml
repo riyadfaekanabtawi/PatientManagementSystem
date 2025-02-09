@@ -55,40 +55,36 @@
                 <!-- Images Section -->
                 <div class="row">
                     <!-- Front Image -->
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="FrontImage" class="form-label">Imagen de Frente</label>
-                            <input type="file" name="FrontImage" class="form-control" />
-                        </div>
+                    <div class="col-md-3 text-center">
+                        <label for="FrontImage" class="form-label">Imagen de Frente</label>
+                        <input type="file" name="FrontImage" class="form-control" onchange="previewImage(event, 'previewFront')" />
+                        <img id="previewFront" class="img-preview d-none mt-2" />
                     </div>
 
                     <!-- Left Image -->
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="LeftImage" class="form-label">Imagen Izquierda</label>
-                            <input type="file" name="LeftImage" class="form-control" />
-                        </div>
+                    <div class="col-md-3 text-center">
+                        <label for="LeftImage" class="form-label">Imagen Izquierda</label>
+                        <input type="file" name="LeftImage" class="form-control" onchange="previewImage(event, 'previewLeft')" />
+                        <img id="previewLeft" class="img-preview d-none mt-2" />
                     </div>
 
                     <!-- Right Image -->
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="RightImage" class="form-label">Imagen Derecha</label>
-                            <input type="file" name="RightImage" class="form-control" />
-                        </div>
+                    <div class="col-md-3 text-center">
+                        <label for="RightImage" class="form-label">Imagen Derecha</label>
+                        <input type="file" name="RightImage" class="form-control" onchange="previewImage(event, 'previewRight')" />
+                        <img id="previewRight" class="img-preview d-none mt-2" />
                     </div>
 
                     <!-- Back Image -->
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="BackImage" class="form-label">Imagen Trasera</label>
-                            <input type="file" name="BackImage" class="form-control" />
-                        </div>
+                    <div class="col-md-3 text-center">
+                        <label for="BackImage" class="form-label">Imagen Trasera</label>
+                        <input type="file" name="BackImage" class="form-control" onchange="previewImage(event, 'previewBack')" />
+                        <img id="previewBack" class="img-preview d-none mt-2" />
                     </div>
                 </div>
 
                 <!-- Submit and Back Buttons -->
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between mt-3">
                     <input type="submit" value="Crear" class="btn btn-primary" />
                     <a asp-action="Index" class="btn btn-secondary">Volver al Listado</a>
                 </div>
@@ -99,4 +95,29 @@
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+
+    <script>
+        function previewImage(event, previewId) {
+            var input = event.target;
+            var preview = document.getElementById(previewId);
+
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    preview.classList.remove("d-none");
+                    preview.classList.add("img-fluid", "rounded-circle", "shadow-sm");
+                    preview.style.width = "120px";
+                    preview.style.height = "120px";
+                    preview.style.objectFit = "cover";
+                };
+
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.src = "";
+                preview.classList.add("d-none");
+            }
+        }
+    </script>
 }
