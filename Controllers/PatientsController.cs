@@ -21,6 +21,7 @@ using PatientManagementSystem.Services;
 
 namespace PatientManagementSystem.Controllers
 {
+    [ServiceFilter(typeof(AdminAuthFilter))] 
     public class PatientsController : Controller
     {
         private readonly AppDbContext _context;

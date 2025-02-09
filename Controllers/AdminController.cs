@@ -22,31 +22,23 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Admin/Index
-        public async Task<IActionResult> Index(int? session_id)
+        [ServiceFilter(typeof(AdminAuthFilter))] 
+        public async Task<IActionResult> Index()
         {
-
-            if (session_id.HasValue)
-            {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
-                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
-            }
             var admins = await _context.Admins.ToListAsync();
             return View(admins);
         }
 
 
         // GET: Admin/Create
-        public IActionResult Create(int? session_id)
+        [ServiceFilter(typeof(AdminAuthFilter))] 
+        public IActionResult Create()
         {
-            if (session_id.HasValue)
-            {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
-                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
-            }
             return View();
         }
 
         // POST: Admin/Create
+        [ServiceFilter(typeof(AdminAuthFilter))] 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Admin admin)
@@ -88,7 +80,7 @@ namespace PatientManagementSystem.Controllers
                 var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
                  _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
                  TempData["Message"] = "Bienvenido";
-                return RedirectToAction("Index", "Home", new { session_id = admin.Id });
+                return RedirectToAction("Index", "Home");
 
             }
 
@@ -108,13 +100,9 @@ namespace PatientManagementSystem.Controllers
 
 
         // GET: Admin/Edit/5
-        public async Task<IActionResult> Edit(int? id, int? session_id)
+        [ServiceFilter(typeof(AdminAuthFilter))] 
+        public async Task<IActionResult> Edit(int? id)
         {
-            if (session_id.HasValue)
-            {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
-                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
-            }
 
             if (id == null)
             {
@@ -133,6 +121,7 @@ namespace PatientManagementSystem.Controllers
         // POST: Admin/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [ServiceFilter(typeof(AdminAuthFilter))] 
         public async Task<IActionResult> Edit(int id, Admin admin)
         {
        
@@ -177,15 +166,10 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Admin/Delete/5
-        public async Task<IActionResult> Delete(int? id, int? session_id)
+        [ServiceFilter(typeof(AdminAuthFilter))] 
+        public async Task<IActionResult> Delete(int? id)
         {
-      
-            if (session_id.HasValue)
-            {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
-                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
-            }
-            
+    
             if (id == null)
             {
                 return NotFound();
@@ -205,6 +189,7 @@ namespace PatientManagementSystem.Controllers
         // POST: Admin/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [ServiceFilter(typeof(AdminAuthFilter))] 
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
         
@@ -220,15 +205,10 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Admin/Details/5
-        public async Task<IActionResult> Details(int? id, int? session_id)
+        [ServiceFilter(typeof(AdminAuthFilter))] 
+        public async Task<IActionResult> Details(int? id)
         {
-           
-            if (session_id.HasValue)
-            {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
-                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
-            }
-
+        
             if (id == null)
             {
                 return NotFound();
@@ -243,17 +223,6 @@ namespace PatientManagementSystem.Controllers
             }
 
             return View(admin);
-        }
-
-        // Helper: Check if Admin is Authenticated
-        private bool IsAuthenticated(int? session_id)
-        {
-            if (session_id.HasValue)
-            {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
-                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
-            }
-            return HttpContext.Session.GetString("AdminLoggedIn") != null;
         }
 
         // Helper: Check if Admin Exists

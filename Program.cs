@@ -4,6 +4,7 @@ using PatientManagementSystem.Data;
 using PatientManagementSystem.Services;  // ✅ Corrected namespace
 using Amazon.S3;
 using Amazon.Extensions.NETCore.Setup;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +15,12 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 // Add services
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    var serviceProvider = builder.Services.BuildServiceProvider();
+    var logger = serviceProvider.GetRequiredService<ILogger<AdminAuthFilter>>();
+    options.Filters.Add(new AdminAuthFilter(logger)); // Register globally
+});
 
 // ✅ Register ThreeDModelService correctly
 builder.Services.AddHttpClient<I3DModelService, ThreeDModelService>();

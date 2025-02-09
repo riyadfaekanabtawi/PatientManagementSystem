@@ -15,9 +15,6 @@
         <dt class="col-sm-2">Email</dt>
         <dd class="col-sm-10">@Model.Email</dd>
     </dl>
-@{
-            var sessionValue = HttpContextAccessor.HttpContext?.Session?.GetString("AdminLoggedIn");
-            }   
-    <a asp-action="Edit" asp-route-id="@Model.Id" asp-route-session_id="@sessionValue" class="btn btn-warning">Editar</a>
-    <a asp-action="Index" class="btn btn-secondary" asp-route-session_id="@sessionValue">Volver a la listado</a>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Editar</a>
+    <a asp-action="Index" class="btn btn-secondary">Volver a la listado</a>
 </div>

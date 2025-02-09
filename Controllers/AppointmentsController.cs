@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace PatientManagementSystem.Controllers
 {
+    [ServiceFilter(typeof(AdminAuthFilter))] 
     public class AppointmentsController : BaseController
     {
         private readonly AppDbContext _context;
@@ -20,13 +21,9 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Appointments
-        public async Task<IActionResult> Index(DateTime? date, int? patientId, int? session_id)
+        public async Task<IActionResult> Index(DateTime? date, int? patientId)
         {
 
-            if (session_id.HasValue)
-            {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
-            }
 
             var appointments = _context.Appointments.Include(a => a.Patient).AsQueryable();
 

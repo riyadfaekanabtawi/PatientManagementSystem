@@ -3,14 +3,12 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-@{
-            var sessionValue = HttpContextAccessor.HttpContext?.Session?.GetString("AdminLoggedIn");
-            }   
+
 
 <h1 class="mb-4">Listado de Pacientes</h1>
 
 <div class="mb-3">
-    <a asp-controller="Patients" asp-action="Create" asp-route-session_id="@sessionValue" class="btn btn-primary">Cargar Nuevo Paciente</a>
+    <a asp-controller="Patients" asp-action="Create" class="btn btn-primary">Cargar Nuevo Paciente</a>
 </div>
 
 <div class="table-responsive">
@@ -54,10 +52,10 @@
                     </td>
                     <td>
                        <div class="d-flex gap-2">
-                            <a asp-controller="Patients" asp-action="AdjustFace" asp-route-id="@patient.Id" asp-route-session_id="@sessionValue" class="btn btn-warning btn-sm">Ajustar Rostro</a>
-                            <a asp-controller="Patients" asp-action="History" asp-route-id="@patient.Id" asp-route-session_id="@sessionValue" class="btn btn-info btn-sm">Ver Historial</a>
-                            <a asp-controller="Patients" asp-action="Edit" asp-route-id="@patient.Id" asp-route-session_id="@sessionValue" class="btn btn-primary btn-sm">Editar</a>
-                            <a asp-controller="Patients" asp-action="Delete" asp-route-id="@patient.Id" asp-route-session_id="@sessionValue" class="btn btn-danger btn-sm">Eliminar</a>
+                            <a asp-controller="Patients" asp-action="AdjustFace" asp-route-id="@patient.Id" class="btn btn-warning btn-sm">Ajustar Rostro</a>
+                            <a asp-controller="Patients" asp-action="History" asp-route-id="@patient.Id" class="btn btn-info btn-sm">Ver Historial</a>
+                            <a asp-controller="Patients" asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-primary btn-sm">Editar</a>
+                            <a asp-controller="Patients" asp-action="Delete" asp-route-id="@patient.Id" class="btn btn-danger btn-sm">Eliminar</a>
                         </div>
                     </td>
                 </tr>

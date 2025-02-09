@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace PatientManagementSystem.Controllers
 {
+    [ServiceFilter(typeof(AdminAuthFilter))] 
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
@@ -17,14 +18,9 @@ namespace PatientManagementSystem.Controllers
             _context = context;
         }
 
-        public IActionResult Index(int? session_id)
+        public IActionResult Index()
         {
-            if (session_id.HasValue)
-            {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
-                _logger.LogInformation($"[DEBUG] Session set from query param: {session_id.Value}");
-            }
-
+            
             var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
             var cookies = HttpContext.Request.Headers["Cookie"];
 
