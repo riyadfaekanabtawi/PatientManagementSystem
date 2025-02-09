@@ -241,18 +241,40 @@ namespace PatientManagementSystem.Controllers
                 }
 
                 // Fetch the remeshed model URL
-                var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+                // Extract GLB URL from Meshy
+                var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+                if (string.IsNullOrEmpty(glbUrl))
+                {
+                    _logger.LogError($"Meshy task {remeshTaskId} did not return a GLB URL.");
+                    return null;
+                }
 
-                // Update patient's 3D model URL
+                // Generate a unique key for S3
+                var s3Key = $"models/patient_{id}_{Guid.NewGuid()}.glb";
+
+                // Upload the GLB model to S3
+                var uploadSuccess = await UploadToS3(glbUrl, s3Key);
+                if (!uploadSuccess)
+                {
+                    _logger.LogError("Failed to upload the 3D model to S3.");
+                    return null;
+                }
+
+                // Construct S3 URL
+                var s3ModelUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
+
+                // Update the patient record with the new model URL
                 var patient = await _context.Patients.FindAsync(id);
                 if (patient != null)
                 {
-                    patient.Model3DUrl = modelUrl;
-                    _context.Update(patient);
+                    patient.Model3DUrl = s3ModelUrl; // Save the S3 URL
+                    patient.MeshyTaskId = remeshTaskId; // Update the task ID for tracking
                     await _context.SaveChangesAsync();
                 }
 
-                return Json(new { success = true, modelUrl });
+                _logger.LogInformation($"3D model successfully uploaded to S3 and updated for patient {id}.");
+
+                return Json(new { success = true, s3ModelUrl });
             }
             catch (Exception ex)
             {

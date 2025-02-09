@@ -242,7 +242,7 @@
 
                 // Fetch remeshed model status
                 try {
-                    const remeshStatusResponse = await fetch(`/Patients/CheckMeshyTaskStatus/${remeshedTaskId}/${patientId}`);
+                    const remeshStatusResponse = await fetch(`/Patients/CheckRemeshStatus/${remeshedTaskId}/${patientId}`);
                     const remeshStatusData = await remeshStatusResponse.json();
 
                     if (remeshStatusData.success) {
