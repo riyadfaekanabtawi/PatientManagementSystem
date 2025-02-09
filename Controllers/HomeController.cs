@@ -17,27 +17,15 @@ namespace PatientManagementSystem.Controllers
             _logger = logger;
             _context = context;
         }
-
+        [TypeFilter(typeof(AdminAuthFilter))]
         public IActionResult Index()
         {
-            
-            var sessionValue = HttpContext.Session.GetString("AdminLoggedIn");
-            var cookies = HttpContext.Request.Headers["Cookie"];
-
-            _logger.LogInformation($"[DEBUG] Cookies Received: {cookies}");
-            _logger.LogInformation($"[DEBUG] Session Retrieved: {sessionValue}");
-
-            if (string.IsNullOrEmpty(sessionValue))
-            {
-                return RedirectToAction("Login", "Admin");
-            }
-
             var patients = _context.Patients.ToList();
             return View(patients);
         }
 
 
-
+        [TypeFilter(typeof(AdminAuthFilter))]
         public IActionResult Privacy()
         {
             return View();
