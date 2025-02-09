@@ -396,8 +396,8 @@ namespace PatientManagementSystem.Controllers
             return View(patient);
         }
 
-        [Route("Patients/Generate3DModel/{id}")]
         [HttpPost]
+        [Route("Patients/Generate3DModel/{id}")]
         public async Task<IActionResult> Generate3DModel(int id)
         {
             var patient = await _context.Patients.FindAsync(id);
@@ -431,18 +431,18 @@ namespace PatientManagementSystem.Controllers
 
                 var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
                 var taskId = result.GetProperty("result").GetString();
+                var objectId = result.GetProperty("id").GetString(); // Extract the 3D object ID
 
-                // ✅ Save the new task ID in the database
+                // Save the taskId and 3DObjectId to the database
                 patient.MeshyTaskId = taskId;
-                _context.Update(patient);
+                patient.ThreeDObjectId = objectId;
                 await _context.SaveChangesAsync();
-                _logger.LogInformation($"✅ Task ID {taskId} saved for Patient ID {id}");
 
                 return Json(new { success = true, taskId });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"❌ Exception in Generate3DModel: {ex.Message}");
+                _logger.LogError($"Exception in Generate3DModel: {ex.Message}");
                 return Json(new { success = false, message = "An error occurred while creating the 3D task." });
             }
         }

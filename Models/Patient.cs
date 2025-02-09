@@ -34,7 +34,9 @@ namespace PatientManagementSystem.Models
         public string? MeshyTaskId { get; set; }
 
         public string? RemeshedTaskId { get; set; }
-        
+
+         public string? ThreeDObjectId { get; set; }
+
         public int? CheekAdjustment { get; set; }
         public int? ChinAdjustment { get; set; }
         public int? NoseAdjustment { get; set; }
