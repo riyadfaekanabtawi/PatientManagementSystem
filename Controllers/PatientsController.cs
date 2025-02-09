@@ -229,75 +229,55 @@ namespace PatientManagementSystem.Controllers
         }
 
         [HttpPost]
-        [Route("Patients/SaveFaceAdjustment/{id}")]
         public async Task<IActionResult> SaveFaceAdjustment(int id, [FromBody] FaceAdjustmentRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.Notes))
-            {
-                return Json(new { success = false, message = "Debes ingresar las notas" });
-            }
-
             var patient = await _context.Patients.FindAsync(id);
             if (patient == null) return NotFound();
 
+            // Upload Snapshot to S3
             var fileName = $"adjustments/{id}_{DateTime.UtcNow.Ticks}.png";
+            var s3Bucket = _configuration["AWS:BucketName"];
 
-            try
+            using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
             {
-                // Retrieve S3 credentials and configuration
-                var awsAccessKey = _configuration["AWS:AccessKey"];
-                var awsSecretKey = _configuration["AWS:SecretKey"];
-                var awsRegion = _configuration["AWS:Region"];
-                var s3Bucket = _configuration["AWS:BucketName"];
-
-                // Use RegionEndpoint from Amazon SDK
-                var s3Client = new AmazonS3Client(awsAccessKey, awsSecretKey, RegionEndpoint.GetBySystemName(awsRegion));
-
-                // Convert base64 string to byte array and upload to S3
-                using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
+                var uploadRequest = new TransferUtilityUploadRequest
                 {
-                    var uploadRequest = new TransferUtilityUploadRequest
-                    {
-                        InputStream = stream,
-                        BucketName = s3Bucket,
-                        Key = fileName,
-                        ContentType = "image/png",
-                        CannedACL = S3CannedACL.PublicRead
-                    };
-
-                    var transferUtility = new TransferUtility(s3Client);
-                    await transferUtility.UploadAsync(uploadRequest);
-                }
-
-                var snapshotUrl = $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
-
-                // Save snapshot URL and notes to the database
-                var history = new FaceAdjustmentHistory
-                {
-                    PatientId = id,
-                    AdjustedImageUrl = snapshotUrl,
-                    Notes = request.Notes,
-                    AdjustmentDate = DateTime.UtcNow
+                    InputStream = stream,
+                    BucketName = s3Bucket,
+                    Key = fileName,
+                    ContentType = "image/png",
+                    CannedACL = S3CannedACL.PublicRead
                 };
 
-                _context.FaceAdjustmentHistories.Add(history);
-                await _context.SaveChangesAsync();
+                var transferUtility = new TransferUtility(_s3Client);
+                await transferUtility.UploadAsync(uploadRequest);
+            }
 
-                return Json(new { success = true });
-            }
-            catch (Exception ex)
+            var snapshotUrl = $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
+
+            // Save FaceAdjustmentHistory
+            var history = new FaceAdjustmentHistory
             {
-                _logger.LogError($"❌ Error saving face adjustment: {ex.Message}");
-                return Json(new { success = false, message = "Error al guardar el ajuste de cara" });
-            }
+                PatientId = id,
+                AdjustedImageUrl = snapshotUrl,
+                Notes = request.Notes,
+                AdjustmentDate = DateTime.UtcNow
+            };
+
+            _context.FaceAdjustmentHistories.Add(history);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
         }
 
-        public async Task<IActionResult> History(int id, int? session_id)
+        public class FaceAdjustmentRequest
         {
-            if (session_id.HasValue)
-            {
-                HttpContext.Session.SetString("AdminLoggedIn", session_id.Value.ToString());
-            }
+            public string Snapshot { get; set; } = string.Empty;
+            public string Notes { get; set; } = string.Empty;
+        }
+
+        public async Task<IActionResult> History(int id)
+        {
             var patient = await _context.Patients
                 .Include(p => p.AdjustmentHistory)
                 .FirstOrDefaultAsync(p => p.Id == id);
