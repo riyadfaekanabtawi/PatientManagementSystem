@@ -22,7 +22,7 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Admin/Index
-        [ServiceFilter(typeof(AdminAuthFilter))] 
+        [TypeFilter(typeof(AdminAuthFilter))]
         public async Task<IActionResult> Index()
         {
             var admins = await _context.Admins.ToListAsync();
@@ -31,14 +31,14 @@ namespace PatientManagementSystem.Controllers
 
 
         // GET: Admin/Create
-        [ServiceFilter(typeof(AdminAuthFilter))] 
+        [TypeFilter(typeof(AdminAuthFilter))]
         public IActionResult Create()
         {
             return View();
         }
 
         // POST: Admin/Create
-        [ServiceFilter(typeof(AdminAuthFilter))] 
+        [TypeFilter(typeof(AdminAuthFilter))]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Admin admin)
@@ -100,7 +100,7 @@ namespace PatientManagementSystem.Controllers
 
 
         // GET: Admin/Edit/5
-        [ServiceFilter(typeof(AdminAuthFilter))] 
+        [TypeFilter(typeof(AdminAuthFilter))]
         public async Task<IActionResult> Edit(int? id)
         {
 
@@ -121,7 +121,7 @@ namespace PatientManagementSystem.Controllers
         // POST: Admin/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [ServiceFilter(typeof(AdminAuthFilter))] 
+        [TypeFilter(typeof(AdminAuthFilter))]
         public async Task<IActionResult> Edit(int id, Admin admin)
         {
        
@@ -166,7 +166,7 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Admin/Delete/5
-        [ServiceFilter(typeof(AdminAuthFilter))] 
+        [TypeFilter(typeof(AdminAuthFilter))]
         public async Task<IActionResult> Delete(int? id)
         {
     
@@ -189,7 +189,7 @@ namespace PatientManagementSystem.Controllers
         // POST: Admin/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [ServiceFilter(typeof(AdminAuthFilter))] 
+        [TypeFilter(typeof(AdminAuthFilter))]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
         
@@ -205,7 +205,7 @@ namespace PatientManagementSystem.Controllers
         }
 
         // GET: Admin/Details/5
-        [ServiceFilter(typeof(AdminAuthFilter))] 
+        [TypeFilter(typeof(AdminAuthFilter))]
         public async Task<IActionResult> Details(int? id)
         {
         

@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace PatientManagementSystem.Controllers
 {
-    [ServiceFilter(typeof(AdminAuthFilter))] 
+    [TypeFilter(typeof(AdminAuthFilter))]
     public class AppointmentsController : BaseController
     {
         private readonly AppDbContext _context;

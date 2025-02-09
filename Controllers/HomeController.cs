@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace PatientManagementSystem.Controllers
 {
-    [ServiceFilter(typeof(AdminAuthFilter))] 
+    [TypeFilter(typeof(AdminAuthFilter))]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
