@@ -228,7 +228,7 @@ namespace PatientManagementSystem.Controllers
             return $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
         }
 
-        
+
         [Route("Patients/SaveFaceAdjustment/{id}")]
         [HttpPost]
         public async Task<IActionResult> SaveFaceAdjustment(int id, [FromBody] FaceAdjustmentRequest request)
@@ -240,6 +240,10 @@ namespace PatientManagementSystem.Controllers
             var fileName = $"adjustments/{id}_{DateTime.UtcNow.Ticks}.png";
             var s3Bucket = _configuration["AWS:BucketName"];
 
+            var s3Client = new AmazonS3Client(awsAccessKey, awsSecretKey, RegionEndpoint.GetBySystemName(awsRegion));
+
+            var fileName = $"patients/{Guid.NewGuid()}_{file.FileName}";
+
             using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
             {
                 var uploadRequest = new TransferUtilityUploadRequest
@@ -247,13 +251,14 @@ namespace PatientManagementSystem.Controllers
                     InputStream = stream,
                     BucketName = s3Bucket,
                     Key = fileName,
-                    ContentType = "image/png",
+                    ContentType = file.ContentType,
                     CannedACL = S3CannedACL.PublicRead
                 };
 
-                var transferUtility = new TransferUtility(_s3Client);
+                var transferUtility = new TransferUtility(s3Client);
                 await transferUtility.UploadAsync(uploadRequest);
             }
+          
 
             var snapshotUrl = $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
 
