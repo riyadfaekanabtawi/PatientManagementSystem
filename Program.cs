@@ -13,7 +13,7 @@ builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = 52428800; // 50 MB
 });
-
+builder.Services.AddScoped<AdminAuthFilter>();
 // Add services
 builder.Services.AddControllersWithViews(options =>
 {
