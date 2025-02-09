@@ -182,7 +182,6 @@
 
                         if (statusData.success) {
                             clearInterval(checkInterval);
-                            alert("✅ 3D model ready! Loading...");
                             init3DModel(statusData.modelUrl);
                         }
                     }, 5000);
@@ -243,7 +242,7 @@
 
                 // Fetch remeshed model status
                 try {
-                    const remeshStatusResponse = await fetch(`/Patients/CheckRemeshStatus/${remeshedTaskId}/${patientId}`);
+                    const remeshStatusResponse = await fetch(`/Patients/CheckMeshyTaskStatus/${remeshedTaskId}/${patientId}`);
                     const remeshStatusData = await remeshStatusResponse.json();
 
                     if (remeshStatusData.success) {

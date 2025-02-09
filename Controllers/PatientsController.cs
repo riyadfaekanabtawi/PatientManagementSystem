@@ -280,17 +280,17 @@ namespace PatientManagementSystem.Controllers
                 return NotFound("Patient not found.");
             }
 
-            if (!string.IsNullOrEmpty(patient.MeshyTaskId))
-            {
-                // ✅ Check the status of the existing Meshy Task
-                var taskStatus = await CheckMeshyTaskStatus(patient.MeshyTaskId, id);
-                if (taskStatus != null)
-                {
-                    patient.Model3DUrl = taskStatus;
-                    _context.Update(patient);
-                    await _context.SaveChangesAsync();
-                }
-            }
+            // if (!string.IsNullOrEmpty(patient.MeshyTaskId))
+            // {
+            //     // ✅ Check the status of the existing Meshy Task
+            //     var taskStatus = await CheckMeshyTaskStatus(patient.MeshyTaskId, id);
+            //     if (taskStatus != null)
+            //     {
+            //         patient.Model3DUrl = taskStatus;
+            //         _context.Update(patient);
+            //         await _context.SaveChangesAsync();
+            //     }
+            // }
 
             return View(patient);
         }
