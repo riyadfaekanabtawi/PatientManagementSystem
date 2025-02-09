@@ -451,10 +451,16 @@ namespace PatientManagementSystem.Controllers
                 var requestBody = new
                 {
                     image_url = patient.FrontImageUrl,
-                    enable_pbr = true,
+                    ai_model = "meshy-4",
+                    topology = "quad",
+                    target_polycount = 300000,
                     should_remesh = true,
-                    should_texture = true
+                    should_texture = true,
+                    should_texture = true,
+                    symmetry_mode = "auto",
+                    texture_prompt = "High-quality realistic texture with accurate facial details"
                 };
+
 
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
