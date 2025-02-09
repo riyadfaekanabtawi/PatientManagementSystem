@@ -17,10 +17,9 @@ builder.WebHost.ConfigureKestrel(options =>
 // Add services
 builder.Services.AddControllersWithViews(options =>
 {
-    var serviceProvider = builder.Services.BuildServiceProvider();
-    var logger = serviceProvider.GetRequiredService<ILogger<AdminAuthFilter>>();
-    options.Filters.Add(new AdminAuthFilter(logger)); // Register globally
+    options.Filters.Add<AdminAuthFilter>(); // ✅ Correct way to add filters using DI
 });
+
 
 // ✅ Register ThreeDModelService correctly
 builder.Services.AddHttpClient<I3DModelService, ThreeDModelService>();
