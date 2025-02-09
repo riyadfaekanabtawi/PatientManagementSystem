@@ -168,17 +168,15 @@ namespace PatientManagementSystem.Controllers
         public async Task<IActionResult> RemeshModel(int id)
         {
             var patient = await _context.Patients.FindAsync(id);
-            if (patient == null || string.IsNullOrEmpty(patient.MeshyTaskId))
-            {
-                return Json(new { success = false, message = "No 3D model available to remesh." });
-            }
+            if (patient == null || string.IsNullOrEmpty(patient.ThreeDObjectId))
+                return Json(new { success = false, message = "No 3D object found for remeshing." });
 
             try
             {
                 var requestBody = new
                 {
-                    input_task_id = patient.MeshyTaskId,
-                    target_formats = new[] { "glb" },
+                    input_task_id = patient.ThreeDObjectId,
+                    target_formats = new[] { "glb", "fbx" },
                     topology = "quad",
                     target_polycount = 50000,
                     resize_height = 1.0,
@@ -187,6 +185,7 @@ namespace PatientManagementSystem.Controllers
 
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
+
                 var response = await httpClient.PostAsync(
                     "https://api.meshy.ai/openapi/v1/remesh",
                     new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json")
@@ -195,23 +194,22 @@ namespace PatientManagementSystem.Controllers
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError($"Meshy Remesh API error: {errorContent}");
+                    _logger.LogError($"Meshy API error: {errorContent}");
                     return Json(new { success = false, message = "Failed to create remesh task." });
                 }
 
                 var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
                 var remeshTaskId = result.GetProperty("result").GetString();
 
-                // Update patient's remeshed task ID
+                // Update the patient's remeshed task ID
                 patient.RemeshedTaskId = remeshTaskId;
-                _context.Update(patient);
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, remeshTaskId });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"❌ Exception in RemeshModel: {ex.Message}");
+                _logger.LogError($"Exception in RemeshModel: {ex.Message}");
                 return Json(new { success = false, message = "An error occurred while creating the remesh task." });
             }
         }
@@ -431,11 +429,8 @@ namespace PatientManagementSystem.Controllers
 
                 var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
                 var taskId = result.GetProperty("result").GetString();
-                var objectId = result.GetProperty("id").GetString(); // Extract the 3D object ID
 
-                // Save the taskId and 3DObjectId to the database
                 patient.MeshyTaskId = taskId;
-                patient.ThreeDObjectId = objectId;
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, taskId });
@@ -449,8 +444,8 @@ namespace PatientManagementSystem.Controllers
 
 
         
-        [Route("Patients/CheckModelStatus/{taskId}/{id}")]
         [HttpGet]
+        [Route("Patients/CheckModelStatus/{taskId}/{id}")]
         public async Task<IActionResult> CheckModelStatus(string taskId, int id)
         {
             try
@@ -474,47 +469,29 @@ namespace PatientManagementSystem.Controllers
                     return Json(new { success = false, pending = true });
                 }
 
-                // ✅ Fetch the GLB file URL from Meshy
-                var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
-                _logger.LogInformation($"✅ GLB model available at: {glbUrl}");
+                // Fetch the 3D model URL and object ID
+                var modelUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+                var objectId = result.GetProperty("id").GetString();
 
-                // ✅ Define the S3 Key for storing the model
-                var s3Key = $"models/patient_{id}_{Guid.NewGuid()}.glb";
-
-                // ✅ Upload the model to S3
-                var uploadSuccess = await UploadToS3(glbUrl, s3Key);
-                if (!uploadSuccess)
-                {
-                    _logger.LogError("❌ Failed to upload GLB model to S3.");
-                    return Json(new { success = false, message = "Failed to upload model to S3." });
-                }
-
-                // ✅ Construct the final S3 URL
-                var s3Url = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
-
-                // ✅ Update the Patient's Model3DUrl in the Database
+                // Update the patient record in the database
                 var patient = await _context.Patients.FindAsync(id);
                 if (patient != null)
                 {
-                    patient.Model3DUrl = s3Url;
-                    _context.Update(patient);
+                    patient.Model3DUrl = modelUrl;
+                    patient.ThreeDObjectId = objectId; // Save the object ID
                     await _context.SaveChangesAsync();
-                    _logger.LogInformation($"✅ Model3DUrl updated in DB: {s3Url}");
-                }
-                else
-                {
-                    _logger.LogWarning($"⚠️ Patient with ID {id} not found.");
                 }
 
-                // ✅ Return the final S3 URL for rendering
-                return Json(new { success = true, modelUrl = s3Url });
+                return Json(new { success = true, modelUrl });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"❌ Exception in CheckModelStatus: {ex.Message}");
+                _logger.LogError($"Exception in CheckModelStatus: {ex.Message}");
+                _logger.LogError(ex.StackTrace);
                 return Json(new { success = false, message = "An error occurred while checking the 3D model status." });
             }
         }
+
 
 
 
