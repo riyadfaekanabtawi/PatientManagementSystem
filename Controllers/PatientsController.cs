@@ -300,32 +300,57 @@ namespace PatientManagementSystem.Controllers
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
 
-            var response = await httpClient.GetAsync($"https://api.meshy.ai/openapi/v1/image-to-3d/{taskId}");
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                _logger.LogError($"Meshy API error: {await response.Content.ReadAsStringAsync()}");
+                var response = await httpClient.GetAsync($"https://api.meshy.ai/openapi/v1/image-to-3d/{taskId}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"Meshy API error: {await response.Content.ReadAsStringAsync()}");
+                    return null;
+                }
+
+                var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
+                var status = result.GetProperty("status").GetString();
+
+                if (status != "SUCCEEDED")
+                {
+                    _logger.LogInformation($"Meshy task {taskId} is not yet complete. Status: {status}");
+                    return null;
+                }
+
+                // Get the GLB URL from the Meshy response
+                var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+                var s3Key = $"models/patient_{patientId}_{Guid.NewGuid()}.glb";
+
+                // Upload the GLB to S3
+                var uploadSuccess = await UploadToS3(glbUrl, s3Key);
+                if (!uploadSuccess)
+                {
+                    _logger.LogError("Failed to upload the 3D model to S3.");
+                    return null;
+                }
+
+                var s3ModelUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
+
+                // Update the patient's record in the database
+                var patient = await _context.Patients.FindAsync(patientId);
+                if (patient != null)
+                {
+                    patient.Model3DUrl = s3ModelUrl; // Replace the existing 3D model URL
+                    patient.MeshyTaskId = taskId; // Ensure the task ID is updated for tracking
+                    await _context.SaveChangesAsync();
+                }
+
+                _logger.LogInformation($"3D model successfully uploaded and updated for patient {patientId}.");
+                return s3ModelUrl;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Exception in CheckMeshyTaskStatus: {ex.Message}");
                 return null;
             }
-
-            var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
-            var status = result.GetProperty("status").GetString();
-
-            if (status != "SUCCEEDED")
-            {
-                return null;
-            }
-
-            var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
-            var s3Key = $"models/patient_{patientId}_{Guid.NewGuid()}.glb";
-
-            var uploadSuccess = await UploadToS3(glbUrl, s3Key);
-            if (!uploadSuccess)
-            {
-                return null;
-            }
-
-            return $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
         }
+
 
 
         [Route("Patients/SaveFaceAdjustment/{id}")]
@@ -501,12 +526,6 @@ namespace PatientManagementSystem.Controllers
                 return Json(new { success = false, message = "An error occurred while checking the 3D model status." });
             }
         }
-
-
-
-
-
-
 
 
         private bool PatientExists(int id)
