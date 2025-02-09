@@ -318,11 +318,18 @@ namespace PatientManagementSystem.Controllers
                     return null;
                 }
 
-                // Get the GLB URL from the Meshy response
+                // Extract GLB URL from Meshy
                 var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
+                if (string.IsNullOrEmpty(glbUrl))
+                {
+                    _logger.LogError($"Meshy task {taskId} did not return a GLB URL.");
+                    return null;
+                }
+
+                // Generate a unique key for S3
                 var s3Key = $"models/patient_{patientId}_{Guid.NewGuid()}.glb";
 
-                // Upload the GLB to S3
+                // Upload the GLB model to S3
                 var uploadSuccess = await UploadToS3(glbUrl, s3Key);
                 if (!uploadSuccess)
                 {
@@ -330,18 +337,19 @@ namespace PatientManagementSystem.Controllers
                     return null;
                 }
 
+                // Construct S3 URL
                 var s3ModelUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
 
-                // Update the patient's record in the database
+                // Update the patient record with the new model URL
                 var patient = await _context.Patients.FindAsync(patientId);
                 if (patient != null)
                 {
-                    patient.Model3DUrl = s3ModelUrl; // Replace the existing 3D model URL
-                    patient.MeshyTaskId = taskId; // Ensure the task ID is updated for tracking
+                    patient.Model3DUrl = s3ModelUrl; // Save the S3 URL
+                    patient.MeshyTaskId = taskId; // Update the task ID for tracking
                     await _context.SaveChangesAsync();
                 }
 
-                _logger.LogInformation($"3D model successfully uploaded and updated for patient {patientId}.");
+                _logger.LogInformation($"3D model successfully uploaded to S3 and updated for patient {patientId}.");
                 return s3ModelUrl;
             }
             catch (Exception ex)
