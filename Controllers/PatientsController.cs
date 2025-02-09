@@ -240,13 +240,12 @@ namespace PatientManagementSystem.Controllers
                     return Json(new { success = false, pending = true });
                 }
 
-                // Fetch the remeshed model URL
                 // Extract GLB URL from Meshy
                 var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
                 if (string.IsNullOrEmpty(glbUrl))
                 {
                     _logger.LogError($"Meshy task {remeshTaskId} did not return a GLB URL.");
-                    return null;
+                    return Json(new { success = false, message = "No GLB URL found for remeshed task." });
                 }
 
                 // Generate a unique key for S3
@@ -257,7 +256,7 @@ namespace PatientManagementSystem.Controllers
                 if (!uploadSuccess)
                 {
                     _logger.LogError("Failed to upload the 3D model to S3.");
-                    return null;
+                    return Json(new { success = false, message = "Failed to upload remeshed model to S3." });
                 }
 
                 // Construct S3 URL
@@ -267,14 +266,14 @@ namespace PatientManagementSystem.Controllers
                 var patient = await _context.Patients.FindAsync(id);
                 if (patient != null)
                 {
-                    patient.Model3DUrl = s3ModelUrl; // Save the S3 URL
-                    patient.MeshyTaskId = remeshTaskId; // Update the task ID for tracking
+                    patient.Model3DUrl = s3ModelUrl; // Save the new S3 URL
+                    patient.RemeshedTaskId = remeshTaskId; // Update the task ID for tracking
                     await _context.SaveChangesAsync();
                 }
 
                 _logger.LogInformation($"3D model successfully uploaded to S3 and updated for patient {id}.");
 
-                return Json(new { success = true, s3ModelUrl });
+                return Json(new { success = true, modelUrl = s3ModelUrl });
             }
             catch (Exception ex)
             {
@@ -282,6 +281,7 @@ namespace PatientManagementSystem.Controllers
                 return Json(new { success = false, message = "An error occurred while checking remesh status." });
             }
         }
+
 
         [HttpPost]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -301,86 +301,8 @@ namespace PatientManagementSystem.Controllers
             {
                 return NotFound("Patient not found.");
             }
-
-            // if (!string.IsNullOrEmpty(patient.MeshyTaskId))
-            // {
-            //     // ✅ Check the status of the existing Meshy Task
-            //     var taskStatus = await CheckMeshyTaskStatus(patient.MeshyTaskId, id);
-            //     if (taskStatus != null)
-            //     {
-            //         patient.Model3DUrl = taskStatus;
-            //         _context.Update(patient);
-            //         await _context.SaveChangesAsync();
-            //     }
-            // }
-
             return View(patient);
         }
-
-        private async Task<string?> CheckMeshyTaskStatus(string taskId, int patientId)
-        {
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {MeshyApiKey}");
-
-            try
-            {
-                var response = await httpClient.GetAsync($"https://api.meshy.ai/openapi/v1/image-to-3d/{taskId}");
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError($"Meshy API error: {await response.Content.ReadAsStringAsync()}");
-                    return null;
-                }
-
-                var result = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
-                var status = result.GetProperty("status").GetString();
-
-                if (status != "SUCCEEDED")
-                {
-                    _logger.LogInformation($"Meshy task {taskId} is not yet complete. Status: {status}");
-                    return null;
-                }
-
-                // Extract GLB URL from Meshy
-                var glbUrl = result.GetProperty("model_urls").GetProperty("glb").GetString();
-                if (string.IsNullOrEmpty(glbUrl))
-                {
-                    _logger.LogError($"Meshy task {taskId} did not return a GLB URL.");
-                    return null;
-                }
-
-                // Generate a unique key for S3
-                var s3Key = $"models/patient_{patientId}_{Guid.NewGuid()}.glb";
-
-                // Upload the GLB model to S3
-                var uploadSuccess = await UploadToS3(glbUrl, s3Key);
-                if (!uploadSuccess)
-                {
-                    _logger.LogError("Failed to upload the 3D model to S3.");
-                    return null;
-                }
-
-                // Construct S3 URL
-                var s3ModelUrl = $"https://{S3BucketName}.s3.amazonaws.com/{s3Key}";
-
-                // Update the patient record with the new model URL
-                var patient = await _context.Patients.FindAsync(patientId);
-                if (patient != null)
-                {
-                    patient.Model3DUrl = s3ModelUrl; // Save the S3 URL
-                    patient.MeshyTaskId = taskId; // Update the task ID for tracking
-                    await _context.SaveChangesAsync();
-                }
-
-                _logger.LogInformation($"3D model successfully uploaded to S3 and updated for patient {patientId}.");
-                return s3ModelUrl;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Exception in CheckMeshyTaskStatus: {ex.Message}");
-                return null;
-            }
-        }
-
 
 
         [Route("Patients/SaveFaceAdjustment/{id}")]
