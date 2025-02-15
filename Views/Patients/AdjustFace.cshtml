@@ -101,7 +101,7 @@
             const notesField = document.getElementById('notes');
             exporter.parse(window.mesh, async function (gltf) {
                 const glbBlob = new Blob([gltf], { type: "model/gltf-binary" });
-
+                const patientId = @(Model?.Id ?? 0);
                 const reader = new FileReader();
                 reader.readAsDataURL(glbBlob);
                 reader.onloadend = async function () {
