@@ -98,7 +98,7 @@
             }
 
             const exporter = new THREE.GLTFExporter(); // ✅ Ensure this works now!
-
+            const notesField = document.getElementById('notes');
             exporter.parse(window.mesh, async function (gltf) {
                 const glbBlob = new Blob([gltf], { type: "model/gltf-binary" });
 
@@ -114,7 +114,7 @@
                     }
 
                     const requestBody = {
-                        Model3D: base64data,  // ✅ Make sure this key matches the C# class
+                        Model3D: base64data,
                         Notes: notes
                     };
 
