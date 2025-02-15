@@ -68,7 +68,7 @@
 
                     // Prevent booking in the past
                     if (selectedDate < new Date()) {
-                        alert("You cannot book an appointment in the past.");
+                        alert("No puedes reservar una cita en el pasado");
                         calendar.unselect();
                         return;
                     }
@@ -79,14 +79,14 @@
                     });
 
                     if (conflict) {
-                        alert("This time slot is already booked.");
+                        alert("Este horario ya está reservado.");
                         calendar.unselect();
                         return;
                     }
 
                     // Populate the form with the selected date and time
                     document.getElementById('appointmentDateTime').value = info.startStr;
-                    alert(`Selected slot: ${info.startStr}`);
+                    alert(`Fecha y Horario Seleccionado: ${info.startStr}`);
                 }
             });
 
