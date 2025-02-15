@@ -393,7 +393,7 @@ namespace PatientManagementSystem.Controllers
             // Remove the adjustment and save changes
             _context.FaceAdjustmentHistories.Remove(adjustment);
             await _context.SaveChangesAsync();
-
+            TempData["Message"] = "Ajuste eliminado correctamente";
             // Redirect back to the History view for this patient
             return RedirectToAction("History", new { id = adjustment.PatientId });
         }
