@@ -106,7 +106,7 @@
 
             const exporter = new THREE.GLTFExporter();
 
-            exporter.parse(window.mesh, async function (gltf) {
+            exporter.parse(scene, async function (gltf) {
                 const glbBlob = new Blob([gltf], { type: "model/gltf-binary" });
 
                 const reader = new FileReader();
