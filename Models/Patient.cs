@@ -52,6 +52,8 @@ namespace PatientManagementSystem.Models
 
         public string? Model3DUrl { get; set; } // New: Stores GLB model file in S3
 
+        public string? Model3D { get; set; } 
+        
         [Required]
         public DateTime AdjustmentDate { get; set; } = DateTime.UtcNow;
 
