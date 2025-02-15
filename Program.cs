@@ -44,7 +44,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // Configure session middleware
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.IdleTimeout = TimeSpan.FromMinutes(1600);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });

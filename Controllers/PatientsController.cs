@@ -380,6 +380,24 @@ namespace PatientManagementSystem.Controllers
             return View(adjustment);
         }
 
+        [HttpPost]
+        [Route("Patients/DeleteAdjustment/{id}")]
+        public async Task<IActionResult> DeleteAdjustment(int id)
+        {
+            var adjustment = await _context.FaceAdjustmentHistories.FindAsync(id);
+            if (adjustment == null)
+            {
+                return NotFound();
+            }
+
+            // Remove the adjustment and save changes
+            _context.FaceAdjustmentHistories.Remove(adjustment);
+            await _context.SaveChangesAsync();
+
+            // Redirect back to the History view for this patient
+            return RedirectToAction("History", new { id = adjustment.PatientId });
+        }
+
 
         [Route("Patients/SaveFaceAdjustment/{id}")]
         [HttpPost]
