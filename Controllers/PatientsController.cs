@@ -431,6 +431,8 @@ namespace PatientManagementSystem.Controllers
         {
             public string Snapshot { get; set; } = string.Empty;
             public string Notes { get; set; } = string.Empty;
+
+            public string? Model3D { get; set; } 
         }
 
         public async Task<IActionResult> History(int id)
