@@ -94,31 +94,30 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
 
     <script>
-        // 1) Declare global references so saveGLB() can see them:
         let notesField;
         let patientId;
-
-        // 2) Function to export the current mesh as a GLB and save to server
         async function saveGLB() {
             if (!window.mesh) {
                 alert("No se encontró el modelo 3D.");
                 return;
             }
 
+            loaderOverlay.style.display = 'flex';
+
             const exporter = new THREE.GLTFExporter();
 
             exporter.parse(window.mesh, async function (gltf) {
                 const glbBlob = new Blob([gltf], { type: "model/gltf-binary" });
 
-                // Convert the Blob -> Base64
                 const reader = new FileReader();
                 reader.readAsDataURL(glbBlob);
                 reader.onloadend = async function () {
-                    const base64data = reader.result; // e.g. "data:model/gltf-binary;base64,AAAB..."
+                    const base64data = reader.result;
 
                     const notes = notesField.value.trim();
                     if (!notes) {
                         alert("Debes ingresar las notas");
+                        loaderOverlay.style.display = 'none';
                         return;
                     }
 
@@ -138,31 +137,36 @@
                             const errorText = await response.text();
                             console.error("❌ Fetch failed:", response.status, response.statusText, errorText);
                             alert(`❌ Error al guardar el GLB. Detalles: ${response.statusText}`);
+                            loaderOverlay.style.display = 'none';
                             return;
                         }
 
                         const result = await response.json();
                         if (result.success) {
-                            alert("✅ Modelo 3D guardado exitosamente.");
+                            alert("Historico guardado correctamente");
+               
+                            loaderOverlay.style.display = 'none';
+                            window.location.href = `/Patients/History/${patientId}`;
                         } else {
                             alert(`❌ ${result.message}`);
+                            loaderOverlay.style.display = 'none';
                         }
                     } catch (error) {
                         console.error("❌ Error:", error);
                         alert("❌ Ocurrió un error al guardar el modelo 3D.");
+                        loaderOverlay.style.display = 'none';
                     }
                 };
             }, { binary: true });
         }
 
-        // 3) Main logic inside DOMContentLoaded
         document.addEventListener('DOMContentLoaded', async function () {
             const container = document.getElementById('threejs-container');
             const loaderOverlay = document.getElementById('page-loader');
             const snapshotButton = document.getElementById('capture-snapshot');
             const retextureButton = document.getElementById('retexture-model');
             
-            // Initialize these global variables here
+
             notesField = document.getElementById('notes');
             patientId = @(Model?.Id ?? 0);
 
@@ -171,9 +175,8 @@
             const model3DUrl = "@(Model?.Model3DUrl ?? "")".trim();
             const remeshedTaskId = "@(Model?.RemeshedTaskId ?? "")".trim();
 
-            // Load or init the 3D model
             async function init3DModel(url) {
-                container.innerHTML = ""; // Clear previous content
+                container.innerHTML = "";
 
                 if (!url || url.trim() === "") {
                     container.innerHTML = "<p style='color:red'>⚠️ No se encontró el modelo 3D. Por favor, genera uno primero.</p>";
@@ -190,7 +193,7 @@
                 renderer.setPixelRatio(window.devicePixelRatio);
                 container.appendChild(renderer.domElement);
 
-                // Lighting
+     
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
                 scene.add(ambientLight);
 
@@ -198,7 +201,7 @@
                 directionalLight.position.set(5, 10, 7);
                 scene.add(directionalLight);
 
-                // Load GLTF
+ 
                 const loader = new THREE.GLTFLoader();
                 loader.load(url, function (gltf) {
                     const model = gltf.scene;
@@ -215,7 +218,7 @@
                         }
                     });
 
-                    // Show "Guardar Snapshot" button
+                   
                     snapshotButton.style.display = 'block';
 
                     loaderOverlay.style.display = 'none';
@@ -226,7 +229,7 @@
                     loaderOverlay.style.display = 'none';
                 });
 
-                // Orbit Controls
+          
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.enableDamping = true;
                 controls.dampingFactor = 0.05;
@@ -244,7 +247,7 @@
                 controls.update();
             }
 
-            // Generate 3D Model
+ 
             document.getElementById('generate-model').addEventListener('click', async function () {
                 loaderOverlay.style.display = 'flex';
 
@@ -271,10 +274,10 @@
                 }
             });
 
-            // "Guardar Snapshot" => Export the GLB
+
             snapshotButton.addEventListener('click', saveGLB);
 
-            // Load existing or remeshed model
+   
             if (model3DUrl) {
                 loaderOverlay.style.display = 'flex';
                 await init3DModel(model3DUrl);
@@ -297,7 +300,7 @@
                 }
             }
 
-            // Re-texture / Remesh
+
             retextureButton.addEventListener('click', async function () {
                 loaderOverlay.style.display = 'flex';
                 try {
@@ -313,7 +316,7 @@
                     const remeshTaskId = data.remeshTaskId;
                     alert("✅ Retexturizado en proceso esperando el modelo nuevo...");
 
-                    // Poll for completion
+
                     const checkInterval = setInterval(async () => {
                         const statusResponse = await fetch(`/Patients/CheckRemeshStatus/${remeshTaskId}/${patientId}`);
                         const statusData = await statusResponse.json();
@@ -338,7 +341,7 @@
     </script>
 
     <script>
-        // Face Part Adjustments (cheeks, chin, nose)
+     
         document.addEventListener('DOMContentLoaded', function () {
             function adjustFacePart(part, value) {
                 if (!window.mesh || !window.mesh.geometry) return;
@@ -351,27 +354,27 @@
                     let y = position.getY(i);
                     let z = position.getZ(i);
 
-                    // Adjust cheeks
+             
                     if (part === "cheeks" && y > boundingBox.min.y + 0.2 && y < boundingBox.max.y - 0.2) {
                         position.setX(i, x + value * 0.002);
                     }
 
-                    // Adjust chin
+          
                     if (part === "chin" && y < boundingBox.min.y + 0.2) {
                         position.setY(i, y + value * 0.002);
                     }
 
-                    // Adjust nose
+            
                     if (part === "nose" && x > boundingBox.min.x + 0.1 && x < boundingBox.max.x - 0.1 && y > boundingBox.min.y + 0.5) {
                         position.setZ(i, z + value * 0.002);
                     }
                 }
 
                 position.needsUpdate = true;
-                window.mesh.geometry.computeVertexNormals(); // Recalculate normals for better visuals
+                window.mesh.geometry.computeVertexNormals();
             }
 
-            // Sliders
+ 
             document.getElementById('cheeks-slider').addEventListener('input', function () {
                 adjustFacePart("cheeks", parseFloat(this.value));
             });
