@@ -18,6 +18,7 @@
             <div class="d-grid gap-2">
                 <button id="generate-model" class="btn btn-primary">Generar Modelo 3D</button>
                 <button id="retexture-model" class="btn btn-warning">Re Texturizar</button>
+                <!-- We'll reuse this "Guardar Snapshot" button to save the GLB instead -->
                 <button id="capture-snapshot" class="btn btn-secondary" style="display: none;">Guardar Snapshot</button>
             </div>
 
@@ -86,27 +87,30 @@
 }
 
 @section Scripts {
-    <!-- Three.js & Examples -->
+    <!-- Three.js + OrbitControls + GLTFLoader + GLTFExporter -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script> <!-- IMPORTANT! -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
 
     <script>
-        // This function exports the current mesh to GLB and sends it to the server
+        // 1) Declare global references so saveGLB() can see them:
+        let notesField;
+        let patientId;
+
+        // 2) Function to export the current mesh as a GLB and save to server
         async function saveGLB() {
             if (!window.mesh) {
                 alert("No se encontró el modelo 3D.");
                 return;
             }
 
-            const exporter = new THREE.GLTFExporter(); // Now available since we imported GLTFExporter
+            const exporter = new THREE.GLTFExporter();
 
             exporter.parse(window.mesh, async function (gltf) {
-                // Convert the gltf ArrayBuffer to a Blob
                 const glbBlob = new Blob([gltf], { type: "model/gltf-binary" });
 
-                // Convert Blob -> Base64 (with "data:model/gltf-binary;base64," prefix)
+                // Convert the Blob -> Base64
                 const reader = new FileReader();
                 reader.readAsDataURL(glbBlob);
                 reader.onloadend = async function () {
@@ -118,9 +122,8 @@
                         return;
                     }
 
-                    // Build request
                     const requestBody = {
-                        Model3D: base64data, // Must match C# property
+                        Model3D: base64data,
                         Notes: notes
                     };
 
@@ -152,24 +155,29 @@
             }, { binary: true });
         }
 
+        // 3) Main logic inside DOMContentLoaded
         document.addEventListener('DOMContentLoaded', async function () {
             const container = document.getElementById('threejs-container');
             const loaderOverlay = document.getElementById('page-loader');
             const snapshotButton = document.getElementById('capture-snapshot');
-            const notesField = document.getElementById('notes');
             const retextureButton = document.getElementById('retexture-model');
+            
+            // Initialize these global variables here
+            notesField = document.getElementById('notes');
+            patientId = @(Model?.Id ?? 0);
+
             let renderer, scene, camera, controls;
 
-            const patientId = @(Model?.Id ?? 0); // Ensure patientId is valid
             const model3DUrl = "@(Model?.Model3DUrl ?? "")".trim();
             const remeshedTaskId = "@(Model?.RemeshedTaskId ?? "")".trim();
 
+            // Load or init the 3D model
             async function init3DModel(url) {
                 container.innerHTML = ""; // Clear previous content
 
                 if (!url || url.trim() === "") {
                     container.innerHTML = "<p style='color:red'>⚠️ No se encontró el modelo 3D. Por favor, genera uno primero.</p>";
-                    loaderOverlay.style.display = 'none'; // Hide loader
+                    loaderOverlay.style.display = 'none';
                     return;
                 }
 
@@ -182,7 +190,7 @@
                 renderer.setPixelRatio(window.devicePixelRatio);
                 container.appendChild(renderer.domElement);
 
-                // Add lighting
+                // Lighting
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
                 scene.add(ambientLight);
 
@@ -190,17 +198,17 @@
                 directionalLight.position.set(5, 10, 7);
                 scene.add(directionalLight);
 
-                // Load GLTF Model
+                // Load GLTF
                 const loader = new THREE.GLTFLoader();
                 loader.load(url, function (gltf) {
                     const model = gltf.scene;
                     model.scale.set(1, 1, 1);
                     scene.add(model);
 
-                    // Get the first mesh in the model (assuming it's the face)
+                    // Grab first mesh
                     model.traverse((obj) => {
                         if (obj.isMesh) {
-                            window.mesh = obj; // Make mesh globally accessible
+                            window.mesh = obj;
                             obj.geometry.computeVertexNormals();
                             obj.geometry.computeBoundingBox();
                             console.log("Mesh loaded and ready for modifications");
@@ -210,12 +218,12 @@
                     // Show "Guardar Snapshot" button
                     snapshotButton.style.display = 'block';
 
-                    loaderOverlay.style.display = 'none'; // Hide loader
+                    loaderOverlay.style.display = 'none';
                     animate();
                 }, undefined, function (error) {
                     console.error("❌ Error al cargar el modelo:", error);
                     container.innerHTML = "<p style='color:red'>⚠️ Error cargando el modelo 3D.</p>";
-                    loaderOverlay.style.display = 'none'; // Hide loader on error
+                    loaderOverlay.style.display = 'none';
                 });
 
                 // Orbit Controls
@@ -247,7 +255,7 @@
                     const taskId = data.taskId;
                     alert("✅ Task created! Waiting for 3D model...");
 
-                    // Poll for task completion
+                    // Poll
                     const checkInterval = setInterval(async () => {
                         const statusResponse = await fetch(`/Patients/CheckModelStatus/${taskId}/${patientId}`);
                         const statusData = await statusResponse.json();
@@ -263,23 +271,21 @@
                 }
             });
 
-            // Capture 3D Model (instead of snapshot)
+            // "Guardar Snapshot" => Export the GLB
             snapshotButton.addEventListener('click', saveGLB);
 
-            // Initialize existing model or remeshed model
+            // Load existing or remeshed model
             if (model3DUrl) {
                 loaderOverlay.style.display = 'flex';
                 await init3DModel(model3DUrl);
             } else if (remeshedTaskId) {
                 loaderOverlay.style.display = 'flex';
-
-                // Fetch remeshed model status
                 try {
                     const remeshStatusResponse = await fetch(`/Patients/CheckRemeshStatus/${remeshedTaskId}/${patientId}`);
                     const remeshStatusData = await remeshStatusResponse.json();
 
                     if (remeshStatusData.success) {
-                        await init3DModel(remeshStatusData.modelUrl); // Render remeshed model
+                        await init3DModel(remeshStatusData.modelUrl);
                     } else {
                         alert("❌ Could not load remeshed model.");
                         loaderOverlay.style.display = 'none';
@@ -291,10 +297,9 @@
                 }
             }
 
-            // Re-texture / Remesh Model
+            // Re-texture / Remesh
             retextureButton.addEventListener('click', async function () {
-                loaderOverlay.style.display = 'flex'; // Show loader
-
+                loaderOverlay.style.display = 'flex';
                 try {
                     const response = await fetch(`/Patients/RemeshModel/${patientId}`, { method: 'POST' });
                     const data = await response.json();
@@ -308,7 +313,7 @@
                     const remeshTaskId = data.remeshTaskId;
                     alert("✅ Retexturizado en proceso esperando el modelo nuevo...");
 
-                    // Poll for remesh task completion
+                    // Poll for completion
                     const checkInterval = setInterval(async () => {
                         const statusResponse = await fetch(`/Patients/CheckRemeshStatus/${remeshTaskId}/${patientId}`);
                         const statusData = await statusResponse.json();
@@ -316,7 +321,7 @@
                         if (statusData.success) {
                             clearInterval(checkInterval);
                             alert("✅ Retexturizado listo! Cargando...");
-                            await init3DModel(statusData.modelUrl); // Re-render the 3D model
+                            await init3DModel(statusData.modelUrl);
                         } else if (!statusData.pending) {
                             clearInterval(checkInterval);
                             alert(`❌ ${statusData.message}`);
@@ -333,7 +338,7 @@
     </script>
 
     <script>
-        // Face Part Adjustments
+        // Face Part Adjustments (cheeks, chin, nose)
         document.addEventListener('DOMContentLoaded', function () {
             function adjustFacePart(part, value) {
                 if (!window.mesh || !window.mesh.geometry) return;
@@ -346,17 +351,17 @@
                     let y = position.getY(i);
                     let z = position.getZ(i);
 
-                    // Adjust cheeks (expand/contract)
+                    // Adjust cheeks
                     if (part === "cheeks" && y > boundingBox.min.y + 0.2 && y < boundingBox.max.y - 0.2) {
                         position.setX(i, x + value * 0.002);
                     }
 
-                    // Adjust chin (move up/down)
+                    // Adjust chin
                     if (part === "chin" && y < boundingBox.min.y + 0.2) {
                         position.setY(i, y + value * 0.002);
                     }
 
-                    // Adjust nose (move forward/backward)
+                    // Adjust nose
                     if (part === "nose" && x > boundingBox.min.x + 0.1 && x < boundingBox.max.x - 0.1 && y > boundingBox.min.y + 0.5) {
                         position.setZ(i, z + value * 0.002);
                     }
@@ -366,7 +371,7 @@
                 window.mesh.geometry.computeVertexNormals(); // Recalculate normals for better visuals
             }
 
-            // Event Listeners for Sliders
+            // Sliders
             document.getElementById('cheeks-slider').addEventListener('input', function () {
                 adjustFacePart("cheeks", parseFloat(this.value));
             });
@@ -379,11 +384,5 @@
                 adjustFacePart("nose", parseFloat(this.value));
             });
         });
-
-        // Optional helper if you want to set the mesh from outside
-        function setMeshForEditing(mesh) {
-            window.mesh = mesh;
-            console.log("Mesh loaded and ready for editing:", mesh);
-        }
     </script>
 }
