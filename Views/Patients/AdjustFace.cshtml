@@ -91,6 +91,54 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
+        async function saveGLB() {
+    if (!window.mesh) {
+        alert("No se encontró el modelo 3D.");
+        return;
+    }
+
+    const exporter = new THREE.GLTFExporter();
+
+    exporter.parse(window.mesh, async function (gltf) {
+        const blob = new Blob([gltf], { type: "model/gltf-binary" });
+
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = async function () {
+            const base64data = reader.result;
+
+            const notes = notesField.value.trim();
+            if (!notes) {
+                alert("Debes ingresar las notas");
+                return;
+            }
+
+            const requestBody = {
+                Model3D: base64data,
+                Notes: notes
+            };
+
+            try {
+                const response = await fetch(`/Patients/SaveFaceAdjustment/${patientId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert("✅ Modelo 3D guardado exitosamente.");
+                } else {
+                    alert(`❌ ${result.message}`);
+                }
+            } catch (error) {
+                console.error("❌ Error:", error);
+                alert("❌ Ocurrió un error al guardar el modelo 3D.");
+            }
+        };
+    }, { binary: true });
+}
+
         document.addEventListener('DOMContentLoaded', async function () {
             const container = document.getElementById('threejs-container');
             const loaderOverlay = document.getElementById('page-loader');
@@ -202,8 +250,9 @@
                 }
             });
 
+            snapshotButton.addEventListener('click', saveGLB);
             // Capture Snapshot
-            snapshotButton.addEventListener('click', async function () {
+            @* snapshotButton.addEventListener('click', async function () {
                 const dataUrl = renderer.domElement.toDataURL("image/png");
                 const notes = notesField.value.trim();
 
@@ -242,7 +291,7 @@
                     console.error("❌ Error:", error);
                     alert("❌ Ocurrió un error al guardar el snapshot.");
                 }
-            });
+            }); *@
 
             // Initialize existing model or remeshed model
             if (model3DUrl) {

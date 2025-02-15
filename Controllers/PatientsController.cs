@@ -371,6 +371,15 @@ namespace PatientManagementSystem.Controllers
             return View(patient);
         }
 
+        [Route("Patients/AdjustmentDetail/{id}")]
+        public async Task<IActionResult> AdjustmentDetail(int id)
+        {
+            var adjustment = await _context.FaceAdjustmentHistories.Include(h => h.Patient).FirstOrDefaultAsync(h => h.Id == id);
+            if (adjustment == null) return NotFound();
+
+            return View(adjustment);
+        }
+
 
         [Route("Patients/SaveFaceAdjustment/{id}")]
         [HttpPost]
@@ -379,8 +388,7 @@ namespace PatientManagementSystem.Controllers
             var patient = await _context.Patients.FindAsync(id);
             if (patient == null) return NotFound();
 
-            // Upload Snapshot to S3
-            var fileName = $"adjustments/{id}_{DateTime.UtcNow.Ticks}.png";
+            var fileName = $"adjustments/{id}_{DateTime.UtcNow.Ticks}.glb";
             var awsAccessKey = _configuration["AWS:AccessKey"];
             var awsSecretKey = _configuration["AWS:SecretKey"];
             var awsRegion = _configuration["AWS:Region"];
@@ -388,29 +396,27 @@ namespace PatientManagementSystem.Controllers
 
             var s3Client = new AmazonS3Client(awsAccessKey, awsSecretKey, RegionEndpoint.GetBySystemName(awsRegion));
 
-            using (var stream = new MemoryStream(Convert.FromBase64String(request.Snapshot.Split(',')[1])))
+            using (var stream = new MemoryStream(Convert.FromBase64String(request.Model3D.Split(',')[1])))
             {
                 var uploadRequest = new TransferUtilityUploadRequest
                 {
                     InputStream = stream,
                     BucketName = s3Bucket,
                     Key = fileName,
-                    ContentType = "image/jpeg",
+                    ContentType = "model/gltf-binary",
                     CannedACL = S3CannedACL.PublicRead
                 };
 
                 var transferUtility = new TransferUtility(s3Client);
                 await transferUtility.UploadAsync(uploadRequest);
             }
-          
 
-            var snapshotUrl = $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
+            var model3DUrl = $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
 
-            // Save FaceAdjustmentHistory
             var history = new FaceAdjustmentHistory
             {
                 PatientId = id,
-                AdjustedImageUrl = snapshotUrl,
+                Model3DUrl = model3DUrl,
                 Notes = request.Notes,
                 AdjustmentDate = DateTime.UtcNow
             };
@@ -418,7 +424,7 @@ namespace PatientManagementSystem.Controllers
             _context.FaceAdjustmentHistories.Add(history);
             await _context.SaveChangesAsync();
 
-            return Json(new { success = true });
+            return Json(new { success = true, model3DUrl });
         }
 
         public class FaceAdjustmentRequest

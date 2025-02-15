@@ -24,7 +24,6 @@ namespace PatientManagementSystem.Models
         [Phone]
         public string Contact { get; set; } = string.Empty;
 
-        // ✅ Image URLs for 3D Model Generation
         public string? FrontImageUrl { get; set; }
         public string? LeftImageUrl { get; set; }
         public string? RightImageUrl { get; set; }
@@ -46,17 +45,19 @@ namespace PatientManagementSystem.Models
 
     public class FaceAdjustmentHistory
     {
-            public int Id { get; set; }
-            public int PatientId { get; set; }
+        public int Id { get; set; }
+        public int PatientId { get; set; }
 
-            [Required]
-            public string AdjustedImageUrl { get; set; } = null!;
+        public string? AdjustedImageUrl { get; set; } // Keep this if you still want a snapshot
 
-            [Required]
-            public DateTime AdjustmentDate { get; set; } = DateTime.UtcNow;
+        public string? Model3DUrl { get; set; } // New: Stores GLB model file in S3
 
-            public string? Notes { get; set; }
+        [Required]
+        public DateTime AdjustmentDate { get; set; } = DateTime.UtcNow;
 
-            public Patient Patient { get; set; } = null!;
+        public string? Notes { get; set; }
+
+        public Patient Patient { get; set; } = null!;
     }
+
 }
