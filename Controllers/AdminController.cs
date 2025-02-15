@@ -95,6 +95,7 @@ namespace PatientManagementSystem.Controllers
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
+            TempData["Message"] = "Vuelve pronto";
             return RedirectToAction("Login");
         }
 
