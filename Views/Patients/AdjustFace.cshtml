@@ -86,26 +86,31 @@
 }
 
 @section Scripts {
+    <!-- Three.js & Examples -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script> <!-- IMPORTANT! -->
+
     <script>
+        // This function exports the current mesh to GLB and sends it to the server
         async function saveGLB() {
             if (!window.mesh) {
                 alert("No se encontró el modelo 3D.");
                 return;
             }
 
-            const exporter = new THREE.GLTFExporter(); // ✅ Ensure this works now!
-            const notesField = document.getElementById('notes');
+            const exporter = new THREE.GLTFExporter(); // Now available since we imported GLTFExporter
+
             exporter.parse(window.mesh, async function (gltf) {
+                // Convert the gltf ArrayBuffer to a Blob
                 const glbBlob = new Blob([gltf], { type: "model/gltf-binary" });
-                const patientId = @(Model?.Id ?? 0);
+
+                // Convert Blob -> Base64 (with "data:model/gltf-binary;base64," prefix)
                 const reader = new FileReader();
                 reader.readAsDataURL(glbBlob);
                 reader.onloadend = async function () {
-                    const base64data = reader.result;
+                    const base64data = reader.result; // e.g. "data:model/gltf-binary;base64,AAAB..."
 
                     const notes = notesField.value.trim();
                     if (!notes) {
@@ -113,8 +118,9 @@
                         return;
                     }
 
+                    // Build request
                     const requestBody = {
-                        Model3D: base64data,
+                        Model3D: base64data, // Must match C# property
                         Notes: notes
                     };
 
@@ -124,6 +130,13 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(requestBody)
                         });
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error("❌ Fetch failed:", response.status, response.statusText, errorText);
+                            alert(`❌ Error al guardar el GLB. Detalles: ${response.statusText}`);
+                            return;
+                        }
 
                         const result = await response.json();
                         if (result.success) {
@@ -139,7 +152,6 @@
             }, { binary: true });
         }
 
-
         document.addEventListener('DOMContentLoaded', async function () {
             const container = document.getElementById('threejs-container');
             const loaderOverlay = document.getElementById('page-loader');
@@ -151,7 +163,6 @@
             const patientId = @(Model?.Id ?? 0); // Ensure patientId is valid
             const model3DUrl = "@(Model?.Model3DUrl ?? "")".trim();
             const remeshedTaskId = "@(Model?.RemeshedTaskId ?? "")".trim();
-
 
             async function init3DModel(url) {
                 container.innerHTML = ""; // Clear previous content
@@ -196,9 +207,10 @@
                         }
                     });
 
-                    snapshotButton.style.display = 'block'; // Show snapshot button
-                    loaderOverlay.style.display = 'none'; // Hide loader
+                    // Show "Guardar Snapshot" button
+                    snapshotButton.style.display = 'block';
 
+                    loaderOverlay.style.display = 'none'; // Hide loader
                     animate();
                 }, undefined, function (error) {
                     console.error("❌ Error al cargar el modelo:", error);
@@ -251,48 +263,8 @@
                 }
             });
 
+            // Capture 3D Model (instead of snapshot)
             snapshotButton.addEventListener('click', saveGLB);
-            // Capture Snapshot
-            @* snapshotButton.addEventListener('click', async function () {
-                const dataUrl = renderer.domElement.toDataURL("image/png");
-                const notes = notesField.value.trim();
-
-                if (!notes) {
-                    alert("Debes ingresar las notas");
-                    return;
-                }
-
-                const requestBody = {
-                    Snapshot: dataUrl,
-                    Notes: notes
-                };
-
-                try {
-                    const response = await fetch(`/Patients/SaveFaceAdjustment/${patientId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestBody)
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error("❌ Fetch failed:", response.status, response.statusText, errorText);
-                        alert(`❌ Error al guardar el snapshot. Detalles: ${response.statusText}`);
-                        return;
-                    }
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        alert("✅ Snapshot guardado exitosamente.");
-                    } else {
-                        alert(`❌ ${result.message}`);
-                    }
-                } catch (error) {
-                    console.error("❌ Error:", error);
-                    alert("❌ Ocurrió un error al guardar el snapshot.");
-                }
-            }); *@
 
             // Initialize existing model or remeshed model
             if (model3DUrl) {
@@ -359,7 +331,9 @@
             });
         });
     </script>
+
     <script>
+        // Face Part Adjustments
         document.addEventListener('DOMContentLoaded', function () {
             function adjustFacePart(part, value) {
                 if (!window.mesh || !window.mesh.geometry) return;
@@ -406,12 +380,10 @@
             });
         });
 
-        // Ensure mesh is globally accessible when model loads
+        // Optional helper if you want to set the mesh from outside
         function setMeshForEditing(mesh) {
             window.mesh = mesh;
             console.log("Mesh loaded and ready for editing:", mesh);
         }
     </script>
-
-
 }

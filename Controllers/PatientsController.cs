@@ -385,9 +385,40 @@ namespace PatientManagementSystem.Controllers
         [HttpPost]
         public async Task<IActionResult> SaveFaceAdjustment(int id, [FromBody] FaceAdjustmentRequest request)
         {
+            // 1. Validate the Patient
             var patient = await _context.Patients.FindAsync(id);
-            if (patient == null) return NotFound();
+            if (patient == null) return NotFound("Paciente no encontrado.");
 
+            // 2. Validate the incoming Base64 data
+            if (string.IsNullOrWhiteSpace(request.Model3D))
+            {
+                return BadRequest("❌ Model3D data is missing or empty.");
+            }
+
+            // The prefix from FileReader on the frontend is usually: "data:model/gltf-binary;base64,"
+            const string base64Prefix = "data:model/gltf-binary;base64,";
+            var base64Data = request.Model3D;
+
+            if (!base64Data.StartsWith(base64Prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("❌ The Model3D data does not have the expected prefix 'data:model/gltf-binary;base64,'.");
+            }
+
+            // Remove the prefix so we only have the raw Base64
+            base64Data = base64Data.Substring(base64Prefix.Length);
+
+            // 3. Convert Base64 to bytes
+            byte[] glbBytes;
+            try
+            {
+                glbBytes = Convert.FromBase64String(base64Data);
+            }
+            catch (FormatException)
+            {
+                return BadRequest("❌ The Model3D Base64 string is not properly encoded.");
+            }
+
+            // 4. Upload the GLB to S3
             var fileName = $"adjustments/{id}_{DateTime.UtcNow.Ticks}.glb";
             var awsAccessKey = _configuration["AWS:AccessKey"];
             var awsSecretKey = _configuration["AWS:SecretKey"];
@@ -395,8 +426,7 @@ namespace PatientManagementSystem.Controllers
             var s3Bucket = _configuration["AWS:BucketName"];
 
             var s3Client = new AmazonS3Client(awsAccessKey, awsSecretKey, RegionEndpoint.GetBySystemName(awsRegion));
-
-            using (var stream = new MemoryStream(Convert.FromBase64String(request.Model3D.Split(',')[1])))
+            using (var stream = new MemoryStream(glbBytes))
             {
                 var uploadRequest = new TransferUtilityUploadRequest
                 {
@@ -413,6 +443,7 @@ namespace PatientManagementSystem.Controllers
 
             var model3DUrl = $"https://{s3Bucket}.s3.amazonaws.com/{fileName}";
 
+            // 5. Save to FaceAdjustmentHistory
             var history = new FaceAdjustmentHistory
             {
                 PatientId = id,
@@ -426,6 +457,7 @@ namespace PatientManagementSystem.Controllers
 
             return Json(new { success = true, model3DUrl });
         }
+
 
         public class FaceAdjustmentRequest
         {
